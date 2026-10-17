@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="hu">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <title>Szópártanulási feladat</title>
+
+    <!-- jsPsych core and default styles -->
+    <script src="https://unpkg.com/jspsych@7.3.4"></script>
+    <link href="https://unpkg.com/jspsych@7.3.4/css/jspsych.css" rel="stylesheet">
+
+    <!-- Plugins used in this initial version -->
+    <script src="https://unpkg.com/@jspsych/plugin-html-button-response@1.2.0"></script>
+    <script src="https://unpkg.com/@jspsych/plugin-fullscreen@1.2.1"></script>
+
+    <style>
+        body {
+            margin: 0;
+            background-color: white;
+            color: #222;
+        }
+
+        .jspsych-content {
+            max-width: 900px;
+            padding: 24px;
+            font-family: "Segoe UI", Arial, sans-serif;
+            font-size: 24px;
+            line-height: 1.5;
+            text-align: center;
+        }
+
+        .instruction-text p {
+            margin: 0 0 24px;
+        }
+
+        .jspsych-btn {
+            padding: 12px 24px;
+            font-family: inherit;
+            font-size: 20px;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="experiment"></div>
+
+    <script>
+        "use strict";
+
+        // INITIALIZATION
+
+        const jsPsych = initJsPsych({
+            display_element: "experiment",
+
+            // Temporary ending for testing this initial scaffold.
+            // The completed task will save its results here.
+            on_finish: function () {
+                document.getElementById("experiment").innerHTML = `
+                    <div class="jspsych-content">
+                        <p>Az alapváz próbája véget ért.</p>
+                        <p>Ebben a változatban még nincs adatmentés.</p>
+                    </div>
+                `;
+            }
+        });
+
+        const timeline = [];
+
+        // FULLSCREEN ENTRY
+
+        const enterFullscreen = {
+            type: jsPsychFullscreen,
+            fullscreen_mode: true,
+            message: `
+                <p>Kérjük, a feladatot teljes képernyős módban végezze el.</p>
+            `,
+            button_label: "Teljes képernyő indítása",
+            delay_after: 1000
+        };
+
+        // INSTRUCTIONS
+
+        const instructions = {
+            type: jsPsychHtmlButtonResponse,
+
+            stimulus: `
+                <div class="instruction-text">
+                    <h1>Szópártanulási feladat</h1>
+
+                    <p>
+                        Ebben a feladatban szópárokat fog látni.
+                        Jegyezze meg, melyik szóhoz melyik másik szó tartozik!
+                    </p>
+
+                    <p>
+                        Később minden pár első szavát megmutatjuk,
+                        és Önnek be kell gépelnie a hozzá tartozó második szót.
+                    </p>
+
+                    <p>
+                        Ha nem tudja felidézni a szót,
+                        válassza a <strong>„Nem emlékszem”</strong> lehetőséget.
+                    </p>
+
+                    <p>
+                        Minden megadott szóválasz után értékelnie kell,
+                        mennyire biztos a válasz helyességében.
+                    </p>
+                </div>
+            `,
+
+            // Temporary button for testing the scaffold.
+            choices: ["Alapvázpróba befejezése"]
+        };
+
+        // FULLSCREEN EXIT
+
+        const exitFullscreen = {
+            type: jsPsychFullscreen,
+            fullscreen_mode: false,
+            delay_after: 0
+        };
+
+        // TIMELINE
+
+        timeline.push(enterFullscreen);
+        timeline.push(instructions);
+
+        // Practice and main-task trials will be inserted here.
+
+        timeline.push(exitFullscreen);
+
+        // START
+
+        jsPsych.run(timeline);
+    </script>
+</body>
+
+</html>

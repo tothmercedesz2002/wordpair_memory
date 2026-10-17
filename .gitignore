@@ -1,0 +1,30 @@
+# Participant data and exports
+/data/
+/results/
+/responses/
+/exports/
+*.csv
+*.tsv
+*.xls
+*.xlsx
+*.rds
+*.RData
+.Rhistory
+
+# Secrets and local configuration
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Editors, dependencies, and operating-system files
+.vscode/
+.idea/
+node_modules/
+.DS_Store
+Thumbs.db
+desktop.ini
+*.log
