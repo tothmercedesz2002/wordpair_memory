@@ -15,6 +15,11 @@
     <script src="https://unpkg.com/@jspsych/plugin-html-button-response@1.2.0"></script>
     <script src="https://unpkg.com/@jspsych/plugin-fullscreen@1.2.1"></script>
 
+    <!-- Plugins for learning, typed recall, and confidence ratings -->
+    <script src="https://unpkg.com/@jspsych/plugin-html-keyboard-response@1.1.3"></script>
+    <script src="https://unpkg.com/@jspsych/plugin-survey-html-form@1.0.3"></script>
+    <script src="https://unpkg.com/@jspsych/plugin-html-slider-response@1.1.3"></script>
+
     <style>
         body {
             margin: 0;
@@ -40,6 +45,22 @@
             font-family: inherit;
             font-size: 20px;
         }
+
+        .word-pair {
+            margin: 32px 0;
+            font-size: 44px;
+            font-weight: 600;
+            overflow-wrap: anywhere;
+        }
+
+        .recall-input {
+            box-sizing: border-box;
+            width: min(360px, 80vw);
+            padding: 12px;
+            font-family: inherit;
+            font-size: 26px;
+            text-align: center;
+        }
     </style>
 </head>
 
@@ -51,22 +72,428 @@
 
         // INITIALIZATION
 
+        const EXPERIMENT_VERSION = "WPM_2026-10-17_v3";
+        const IS_JATOS = window.location.pathname.includes("/publix/");
+
+        let participantId = "";
+        let sessionStartUtc = "";
+
         const jsPsych = initJsPsych({
             display_element: "experiment",
-
-            // Temporary ending for testing this initial scaffold.
-            // The completed task will save its results here.
-            on_finish: function () {
-                document.getElementById("experiment").innerHTML = `
-                    <div class="jspsych-content">
-                        <p>Az alapváz próbája véget ért.</p>
-                        <p>Ebben a változatban még nincs adatmentés.</p>
-                    </div>
-                `;
-            }
+            on_trial_finish: recordTrialData,
+            on_finish: finishExperiment
         });
 
         const timeline = [];
+
+        // SETTINGS AND MATERIALS
+
+        const SETTINGS = {
+            pairDisplayMs: 5000
+        };
+
+        const practicePairs = [
+            { id: "practice_01", cue: "bögre", target: "felhő" },
+            { id: "practice_02", cue: "kabát", target: "dió" }
+        ];
+
+        // Provisional pilot pairs, not a normed stimulus set.
+        // Pair identities stay fixed; only presentation order is randomized.
+        const mainPairs = [
+            { id: "main_01", cue: "ablak", target: "rigó" },
+            { id: "main_02", cue: "szőnyeg", target: "homok" },
+            { id: "main_03", cue: "doboz", target: "gesztenye" },
+            { id: "main_04", cue: "ceruza", target: "híd" },
+            { id: "main_05", cue: "kosár", target: "levél" },
+            { id: "main_06", cue: "függöny", target: "gyertya" },
+            { id: "main_07", cue: "létra", target: "cseresznye" },
+            { id: "main_08", cue: "tányér", target: "tenger" },
+            { id: "main_09", cue: "párna", target: "vonat" },
+            { id: "main_10", cue: "zokni", target: "bárány" },
+            { id: "main_11", cue: "lámpa", target: "füzet" },
+            { id: "main_12", cue: "szék", target: "hegedű" },
+            { id: "main_13", cue: "polc", target: "kagyló" },
+            { id: "main_14", cue: "kanál", target: "hó" },
+            { id: "main_15", cue: "sál", target: "korcsolya" },
+            { id: "main_16", cue: "kulcs", target: "bőrönd" },
+            { id: "main_17", cue: "üveg", target: "szőlő" },
+            { id: "main_18", cue: "táska", target: "térkép" },
+            { id: "main_19", cue: "kefe", target: "hold" },
+            { id: "main_20", cue: "cipő", target: "dob" }
+        ];
+
+        // HELPERS
+
+        // Ignores capitalization and surrounding whitespace.
+        // Accents remain meaningful; spelling mistakes are not corrected automatically.
+        function normalizeWord(value) {
+            return String(value)
+                .normalize("NFC")
+                .trim()
+                .toLocaleLowerCase("hu-HU");
+        }
+
+        // Displays typed answers as text, never as executable HTML.
+        function escapeHtml(value) {
+            const entities = {
+                "&": "&amp;",
+                "<": "&lt;",
+                ">": "&gt;",
+                '"': "&quot;",
+                "'": "&#39;"
+            };
+
+            return String(value).replace(
+                /[&<>"']/g,
+                character => entities[character]
+            );
+        }
+
+        // Creates consistent item information for every trial.
+        function pairData(pair, phase, taskPart) {
+            return {
+                phase: phase,
+                task_part: taskPart,
+                pair_id: pair.id,
+                cue_word: pair.cue,
+                target_word: pair.target
+            };
+        }
+
+        // Converts the plugin's generic names into explicit data fields.
+        function recordTrialData(data) {
+            data.trial_number = data.trial_index + 1;
+            data.elapsed_time_ms = data.time_elapsed;
+            data.response_time_ms = data.rt ?? "";
+
+            data.confidence_rating =
+                data.task_part === "confidence" ? data.response : "";
+
+            delete data.time_elapsed;
+            delete data.rt;
+            delete data.response;
+        }
+
+        // DATA EXPORT AND SAVING
+
+        function getExportData() {
+            return jsPsych.data.get()
+                .filterCustom(row =>
+                    ["learning", "recall", "confidence"]
+                        .includes(row.task_part)
+                )
+                .filterColumns([
+                    "participant_id",
+                    "experiment_version",
+                    "session_start_utc",
+                    "run_mode",
+                    "jatos_study_result_id",
+                    "jatos_component_result_id",
+                    "trial_number",
+                    "phase",
+                    "task_part",
+                    "pair_id",
+                    "cue_word",
+                    "target_word",
+                    "learning_position",
+                    "elapsed_time_ms",
+                    "response_time_ms",
+                    "recall_status",
+                    "recall_response_text",
+                    "recall_response_normalized",
+                    "recall_correct",
+                    "confidence_rating"
+                ]);
+        }
+
+        // Only pass trusted interface text to this helper.
+        function showStatus(html) {
+            document.getElementById("experiment").innerHTML =
+                `<div class="jspsych-content">${html}</div>`;
+        }
+
+        async function finishExperiment() {
+            const exportData = getExportData();
+            const safeId = participantId.replace(/[^a-zA-Z0-9_-]/g, "_");
+            const timestamp = sessionStartUtc.replace(/[:.]/g, "-");
+            const fileName = `wordpair_${safeId}_${timestamp}.csv`;
+
+            function downloadCsv() {
+                exportData.localSave("csv", fileName);
+            }
+
+            if (!IS_JATOS) {
+                showStatus(`
+                    <p>A feladat véget ért.</p>
+                    <p>A CSV letöltését elindítjuk. Ellenőrizze a letöltések között!</p>
+                    <button id="download-csv" type="button" class="jspsych-btn">
+                        CSV letöltése
+                    </button>
+                `);
+
+                document.getElementById("download-csv").onclick = downloadCsv;
+                downloadCsv();
+                return;
+            }
+
+            // Reuses the same data on retry instead of appending duplicate rows.
+            const csv = exportData.csv();
+            let dataSubmitted = false;
+            let saving = false;
+
+            async function saveToJatos() {
+                if (saving) return;
+                saving = true;
+
+                showStatus(`
+                    <p>Adatok mentése…</p>
+                    <p>Kérjük, ne zárja be és ne frissítse az oldalt!</p>
+                `);
+
+                try {
+                    if (!dataSubmitted) {
+                        await jatos.submitResultData(csv);
+                        dataSubmitted = true;
+                    }
+
+                    // Supports both current and older JATOS versions.
+                    const endStudy =
+                        jatos.endStudyWithoutRedirect || jatos.endStudyAjax;
+
+                    await endStudy.call(jatos, true);
+
+                    showStatus(`
+                        <p>Az adatokat sikeresen elmentettük.</p>
+                        <p>Köszönjük a részvételét!</p>
+                        <p>
+                            Ha a kérdőívből érkezett, térjen vissza
+                            a korábban megnyitott kérdőív fülére,
+                            és folytassa a kitöltést!
+                        </p>
+                    `);
+                } catch (error) {
+                    console.error("Word-pair task saving failed:", error);
+
+                    showStatus(`
+                        <p>${dataSubmitted
+                            ? "Az adatfeltöltés sikerült, de a futás lezárását nem sikerült visszaigazolni."
+                            : "Az adatfeltöltést nem sikerült visszaigazolni."
+                        }</p>
+                        <p>
+                            Kérjük, ne frissítse az oldalt!
+                            Próbálja újra, vagy töltse le a biztonsági másolatot.
+                        </p>
+                        <p>
+                            <button id="retry-save" type="button" class="jspsych-btn">
+                                Mentés újrapróbálása
+                            </button>
+                        </p>
+                        <p>
+                            <button id="backup-csv" type="button" class="jspsych-btn">
+                                Biztonsági CSV letöltése
+                            </button>
+                        </p>
+                    `);
+
+                    document.getElementById("retry-save").onclick = saveToJatos;
+                    document.getElementById("backup-csv").onclick = downloadCsv;
+                } finally {
+                    saving = false;
+                }
+            }
+
+            await saveToJatos();
+        }
+        // LEARNING TRIAL
+
+        function createLearningTrial(pair, phase) {
+            return {
+                type: jsPsychHtmlKeyboardResponse,
+
+                stimulus: `
+            <div class="word-pair">
+                ${escapeHtml(pair.cue.toLocaleUpperCase("hu-HU"))}
+                –
+                ${escapeHtml(pair.target.toLocaleUpperCase("hu-HU"))}
+            </div>
+        `,
+
+                choices: "NO_KEYS",
+                trial_duration: SETTINGS.pairDisplayMs,
+
+                data: pairData(pair, phase, "learning")
+            };
+        }
+
+        // RECALL FOLLOWED BY CONFIDENCE, UNLESS RECALL IS SKIPPED
+
+        function createRecallSequence(pair, phase) {
+            let recallRecord = null;
+
+            const recallTrial = {
+                type: jsPsychSurveyHtmlForm,
+
+                preamble: `
+            <p>Mi volt ennek a szónak a párja?</p>
+
+            <div class="word-pair">
+                ${escapeHtml(pair.cue.toLocaleUpperCase("hu-HU"))} – ?
+            </div>
+        `,
+
+                html: `
+            <p>
+                <label for="recall-input">
+                    Írja be a hozzá tartozó szót:
+                </label>
+            </p>
+
+            <p>
+                <input
+                    id="recall-input"
+                    name="recall_response_text"
+                    type="text"
+                    class="recall-input"
+                    autocomplete="off"
+                    autocapitalize="none"
+                    autocorrect="off"
+                    spellcheck="false"
+                    required
+                >
+            </p>
+
+            <input
+                id="recall-status"
+                name="recall_status"
+                type="hidden"
+                value="answered"
+            >
+
+            <p>
+                <button
+                    id="skip-recall"
+                    type="button"
+                    class="jspsych-btn"
+                >
+                    Nem emlékszem
+                </button>
+            </p>
+        `,
+
+                button_label: "Válasz rögzítése",
+                autofocus: "recall-input",
+                autocomplete: false,
+
+                data: pairData(pair, phase, "recall"),
+
+                on_load: function () {
+                    const input = document.getElementById("recall-input");
+                    const status = document.getElementById("recall-status");
+                    const skipButton = document.getElementById("skip-recall");
+
+                    // Rejects empty answers and answers containing only whitespace.
+                    function validateAnswer() {
+                        input.setCustomValidity(
+                            input.value.trim()
+                                ? ""
+                                : "Írjon be egy szót, vagy válassza a „Nem emlékszem” lehetőséget."
+                        );
+                    }
+
+                    input.addEventListener("input", validateAnswer);
+                    validateAnswer();
+
+                    // Skipping submits an explicit status, not an empty word answer.
+                    skipButton.addEventListener("click", function () {
+                        status.value = "not_recalled";
+                        input.value = "";
+                        input.required = false;
+                        input.setCustomValidity("");
+
+                        input.form.requestSubmit();
+                    });
+                },
+
+                on_finish: function (data) {
+                    const submitted = data.response;
+                    const answered = submitted.recall_status === "answered";
+
+                    const rawAnswer = answered
+                        ? submitted.recall_response_text
+                        : "";
+
+                    const normalizedAnswer = normalizeWord(rawAnswer);
+
+                    recallRecord = {
+                        recall_status: submitted.recall_status,
+                        recall_response_text: rawAnswer,
+                        recall_response_normalized: normalizedAnswer,
+
+                        recall_correct:
+                            answered &&
+                            normalizedAnswer === normalizeWord(pair.target)
+                    };
+
+                    Object.assign(data, recallRecord);
+                }
+            };
+
+            const confidenceTrial = {
+                type: jsPsychHtmlSliderResponse,
+
+                stimulus: function () {
+                    return `
+                <p>Az Ön válasza:</p>
+
+                <div class="word-pair">
+                    ${escapeHtml(pair.cue.toLocaleUpperCase("hu-HU"))}
+                    –
+                    ${escapeHtml(recallRecord.recall_response_text)}
+                </div>
+
+                <p>
+                    Mennyire biztos abban, hogy a tanult szópárhoz
+                    tartozó szót írta be?
+                </p>
+            `;
+                },
+
+                min: 0,
+                max: 100,
+                slider_start: 50,
+                step: 1,
+                require_movement: true,
+
+                labels: [
+                    "0 – egyáltalán nem biztos",
+                    "100 – teljesen biztos"
+                ],
+
+                button_label: "Tovább",
+
+                data: pairData(pair, phase, "confidence"),
+
+                // Keeps the rating linked to the corresponding answer.
+                on_finish: function (data) {
+                    Object.assign(data, recallRecord);
+                }
+            };
+
+            return {
+                timeline: [
+                    recallTrial,
+
+                    {
+                        timeline: [confidenceTrial],
+
+                        conditional_function: function () {
+                            return recallRecord !== null &&
+                                recallRecord.recall_status === "answered";
+                        }
+                    }
+                ]
+            };
+        }
 
         // FULLSCREEN ENTRY
 
@@ -111,8 +538,7 @@
                 </div>
             `,
 
-            // Temporary button for testing the scaffold.
-            choices: ["Alapvázpróba befejezése"]
+            choices: ["Gyakorlás indítása"]
         };
 
         // FULLSCREEN EXIT
@@ -128,13 +554,146 @@
         timeline.push(enterFullscreen);
         timeline.push(instructions);
 
-        // Practice and main-task trials will be inserted here.
+        // Both practice pairs are learned before either is tested.
+        practicePairs.forEach(pair => {
+            timeline.push(createLearningTrial(pair, "practice"));
+        });
+
+        timeline.push({
+            type: jsPsychHtmlButtonResponse,
+
+            stimulus: `
+        <p>Most próbálja felidézni a tanult szavak párját!</p>
+
+        <p>
+            Minden megadott szóválasz után értékelje a magabiztosságát.
+            A „Nem emlékszem” válasz után ez a kérdés kimarad.
+        </p>
+    `,
+
+            choices: ["Felidézés indítása"]
+        });
+
+        // Randomizes the order of the recall questions.
+        const practiceTestOrder = jsPsych.randomization.shuffle([...practicePairs]);
+
+        practiceTestOrder.forEach(pair => {
+            timeline.push(createRecallSequence(pair, "practice"));
+        });
+
+        // MAIN TASK: LEARNING → RECALL
+
+        timeline.push({
+            type: jsPsychHtmlButtonResponse,
+
+            stimulus: `
+                <div class="instruction-text">
+                    <p>A gyakorlás véget ért. Most a fő feladat következik.</p>
+
+                    <p>
+                        ${mainPairs.length} új szópárt fog látni,
+                        páronként ${SETTINGS.pairDisplayMs / 1000} másodpercig.
+                        Jegyezze meg a párokat!
+                    </p>
+
+                    <p>
+                        Az utolsó szópár után automatikusan elkezdődik
+                        a felidézés. Minden pár első szavát megmutatjuk,
+                        és Önnek be kell gépelnie a hozzá tartozó második szót.
+                    </p>
+
+                    <p>
+                        Minden megadott szóválasz után értékelje,
+                        mennyire biztos a válasz helyességében.
+                        Ha nem tudja felidézni a szót,
+                        válassza a „Nem emlékszem” lehetőséget.
+                        Ekkor a magabiztossági kérdés kimarad.
+                    </p>
+                </div>
+            `,
+
+            choices: ["Szópárok tanulásának indítása"]
+        });
+
+        // Shuffles intact pairs, not the words within them.
+        const mainLearningOrder = jsPsych.randomization.shuffle([...mainPairs]);
+
+        mainLearningOrder.forEach((pair, index) => {
+            const trial = createLearningTrial(pair, "main");
+            trial.data.learning_position = index + 1;
+            timeline.push(trial);
+        });
+
+        // A fresh shuffle determines recall order independently of learning order.
+        const mainTestOrder = jsPsych.randomization.shuffle([...mainPairs]);
+
+        mainTestOrder.forEach(pair => {
+            timeline.push(createRecallSequence(pair, "main"));
+        });
+
+        timeline.push({
+            type: jsPsychHtmlButtonResponse,
+            stimulus: `
+                <p>A feladat véget ért.</p>
+                <p>Köszönjük a részvételét!</p>
+            `,
+            choices: ["Befejezés"]
+        });
 
         timeline.push(exitFullscreen);
 
         // START
 
-        jsPsych.run(timeline);
+        function startExperiment(id) {
+            participantId = String(id ?? "").trim();
+
+            if (IS_JATOS && !participantId) {
+                showStatus(`
+                    <p>Hiányzik a résztvevői azonosító.</p>
+                    <p>Kérjük, a kérdőívben kapott linken indítsa el a feladatot!</p>
+                `);
+                return;
+            }
+
+            participantId = participantId || "TEST_LOCAL";
+            sessionStartUtc = new Date().toISOString();
+
+            jsPsych.data.addProperties({
+                participant_id: participantId,
+                experiment_version: EXPERIMENT_VERSION,
+                session_start_utc: sessionStartUtc,
+                run_mode: IS_JATOS ? "jatos" : "local",
+                jatos_study_result_id: IS_JATOS ? jatos.studyResultId : "",
+                jatos_component_result_id: IS_JATOS ? jatos.componentResultId : ""
+            });
+
+            jsPsych.run(timeline);
+        }
+
+        if (IS_JATOS) {
+            showStatus("<p>A feladat betöltése…</p>");
+
+            const jatosScript = document.createElement("script");
+            jatosScript.src = "jatos.js";
+
+            jatosScript.onload = function () {
+                jatos.onLoad(function () {
+                    startExperiment(jatos.urlQueryParameters.participant_id);
+                });
+            };
+
+            jatosScript.onerror = function () {
+                showStatus(`
+                    <p>A JATOS-kapcsolat betöltése nem sikerült.</p>
+                    <p>A feladat nem indult el. Ellenőrizze az internetkapcsolatát!</p>
+                `);
+            };
+
+            document.head.appendChild(jatosScript);
+        } else {
+            const parameters = new URLSearchParams(window.location.search);
+            startExperiment(parameters.get("participant_id"));
+        }
     </script>
 </body>
 
