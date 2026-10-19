@@ -21,14 +21,37 @@
     <script src="https://unpkg.com/@jspsych/plugin-html-slider-response@1.1.3"></script>
 
     <style>
+        html,
+        body {
+            height: 100%;
+        }
+
         body {
             margin: 0;
             background-color: white;
             color: #222;
         }
 
+        /* Gives the experiment the full viewport height. */
+        #experiment {
+            width: 100%;
+            height: 100vh;
+            height: 100dvh;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+
+        /* Centers short screens while allowing long screens to scroll. */
+        #experiment .jspsych-content-wrapper {
+            flex: 1 0 auto;
+        }
+
         .jspsych-content {
+            box-sizing: border-box;
+            width: 100%;
             max-width: 900px;
+            margin: auto;
             padding: 24px;
             font-family: "Segoe UI", Arial, sans-serif;
             font-size: 24px;
@@ -53,13 +76,48 @@
             overflow-wrap: anywhere;
         }
 
-        .recall-input {
+        #recall-input {
             box-sizing: border-box;
             width: min(360px, 80vw);
             padding: 12px;
             font-family: inherit;
             font-size: 26px;
             text-align: center;
+        }
+
+        /* Left: skip. Right: submit the typed answer. */
+        .recall-actions {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 16px;
+            margin-top: 24px;
+        }
+
+        .recall-actions .recall-skip {
+            background-color: #f1f3f5;
+            border-color: #cbd0d6;
+            color: #454b54;
+        }
+
+        .recall-actions .recall-skip:hover {
+            background-color: #e2e6ea;
+        }
+
+        .recall-actions .recall-submit {
+            background-color: #253247;
+            border-color: #253247;
+            color: white;
+        }
+
+        .recall-actions .recall-submit:hover {
+            background-color: #172236;
+        }
+
+        .recall-actions .jspsych-btn:focus-visible {
+            outline: 3px solid #4278b8;
+            outline-offset: 3px;
         }
     </style>
 </head>
@@ -72,7 +130,7 @@
 
         // INITIALIZATION
 
-        const EXPERIMENT_VERSION = "WPM_2026-10-17_v4";
+        const EXPERIMENT_VERSION = "WPM_2026-10-19_v1";
         const IS_JATOS = window.location.pathname.includes("/publix/");
 
         let participantId = "";
@@ -89,6 +147,7 @@
         // SETTINGS AND MATERIALS
 
         const SETTINGS = {
+            mainPairCount: 12,
             pairDisplayMs: 5000
         };
 
@@ -97,22 +156,68 @@
             { id: "practice_02", cue: "kabát", target: "dió" }
         ];
 
-        // Provisional pilot pairs, not a normed stimulus set.
-        // Pair identities stay fixed; only presentation order is randomized.
-        const mainPairs = [
-            { id: "main_01", cue: "ablak", target: "rigó" },
-            { id: "main_02", cue: "szőnyeg", target: "homok" },
-            { id: "main_03", cue: "doboz", target: "tulipán" },
-            { id: "main_04", cue: "kosár", target: "levél" },
-            { id: "main_05", cue: "függöny", target: "gyertya" },
-            { id: "main_06", cue: "párna", target: "vonat" },
-            { id: "main_07", cue: "zokni", target: "bárány" },
-            { id: "main_08", cue: "szék", target: "hegedű" },
-            { id: "main_09", cue: "kanál", target: "hó" },
-            { id: "main_10", cue: "kulcs", target: "bőrönd" },
-            { id: "main_11", cue: "üveg", target: "szőlő" },
-            { id: "main_12", cue: "kefe", target: "hold" }
+        // Fixed pilot pool selected from the Hungarian SPAML materials.
+        // This selection has not yet been validated for cued recall.
+        const mainPairPool = [
+            { id: "pool_01", cue: "állatkert", target: "cirkusz" },
+            { id: "pool_02", cue: "autogram", target: "fotós" },
+            { id: "pool_03", cue: "banán", target: "eper" },
+            { id: "pool_04", cue: "béka", target: "gyík" },
+            { id: "pool_05", cue: "bélyeg", target: "aláírás" },
+            { id: "pool_06", cue: "boríték", target: "csomag" },
+            { id: "pool_07", cue: "cement", target: "műanyag" },
+            { id: "pool_08", cue: "csiga", target: "teknősbéka" },
+            { id: "pool_09", cue: "csirke", target: "pulyka" },
+            { id: "pool_10", cue: "doboz", target: "táska" },
+            { id: "pool_11", cue: "fal", target: "kerítés" },
+            { id: "pool_12", cue: "híd", target: "alagút" },
+            { id: "pool_13", cue: "horgony", target: "vitorla" },
+            { id: "pool_14", cue: "ing", target: "dzseki" },
+            { id: "pool_15", cue: "jegy", target: "útlevél" },
+            { id: "pool_16", cue: "jelvény", target: "egyenruha" },
+            { id: "pool_17", cue: "kabin", target: "fedélzet" },
+            { id: "pool_18", cue: "kamera", target: "mikrofon" },
+            { id: "pool_19", cue: "könyvtár", target: "múzeum" },
+            { id: "pool_20", cue: "kürt", target: "síp" },
+            { id: "pool_21", cue: "lánc", target: "kötél" },
+            { id: "pool_22", cue: "mókus", target: "mosómedve" },
+            { id: "pool_23", cue: "mozi", target: "színház" },
+            { id: "pool_24", cue: "műhely", target: "garázs" },
+            { id: "pool_25", cue: "naptár", target: "menetrend" },
+            { id: "pool_26", cue: "öböl", target: "kikötő" },
+            { id: "pool_27", cue: "pillangó", target: "madár" },
+            { id: "pool_28", cue: "radar", target: "műhold" },
+            { id: "pool_29", cue: "róka", target: "nyúl" },
+            { id: "pool_30", cue: "sár", target: "homok" },
+            { id: "pool_31", cue: "sisak", target: "kalap" },
+            { id: "pool_32", cue: "sivatag", target: "völgy" },
+            { id: "pool_33", cue: "szekrény", target: "fülke" },
+            { id: "pool_34", cue: "szemüveg", target: "sapka" },
+            { id: "pool_35", cue: "szövet", target: "zsebkendő" },
+            { id: "pool_36", cue: "tábor", target: "falu" },
+            { id: "pool_37", cue: "takaró", target: "törülköző" },
+            { id: "pool_38", cue: "távcső", target: "mikroszkóp" },
+            { id: "pool_39", cue: "tej", target: "gyümölcslé" },
+            { id: "pool_40", cue: "űrhajós", target: "pilóta" }
         ];
+
+        // Rejects invalid settings instead of silently using the wrong number.
+        if (
+            !Number.isInteger(SETTINGS.mainPairCount) ||
+            SETTINGS.mainPairCount < 1 ||
+            SETTINGS.mainPairCount > mainPairPool.length
+        ) {
+            throw new Error(
+                `A mainPairCount értéke 1 és ${mainPairPool.length} közötti egész szám legyen.`
+            );
+        }
+
+        // Selects the participant's pairs once, without replacement.
+        // Both learning and recall use this same selection.
+        const mainPairs = jsPsych.randomization.sampleWithoutReplacement(
+            mainPairPool,
+            SETTINGS.mainPairCount
+        );
 
         // HELPERS
 
@@ -177,6 +282,9 @@
                 .filterColumns([
                     "participant_id",
                     "experiment_version",
+                    "main_pair_count",
+                    "pair_pool_size",
+                    "pair_display_ms",
                     "session_start_utc",
                     "run_mode",
                     "jatos_study_result_id",
@@ -304,9 +412,9 @@
 
                 stimulus: `
             <div class="word-pair">
-                ${escapeHtml(pair.cue.toLocaleUpperCase("hu-HU"))}
+                ${escapeHtml(pair.cue.toLocaleLowerCase("hu-HU"))}
                 –
-                ${escapeHtml(pair.target.toLocaleUpperCase("hu-HU"))}
+                ${escapeHtml(pair.target.toLocaleLowerCase("hu-HU"))}
             </div>
         `,
 
@@ -329,7 +437,7 @@
             <p>Mi volt ennek a szónak a párja?</p>
 
             <div class="word-pair">
-                ${escapeHtml(pair.cue.toLocaleUpperCase("hu-HU"))} – ?
+                ${escapeHtml(pair.cue.toLocaleLowerCase("hu-HU"))} – ?
             </div>
         `,
 
@@ -360,17 +468,17 @@
                 type="hidden"
                 value="answered"
             >
-
-            <p>
+            
+            <div id="recall-actions" class="recall-actions">
                 <button
                     id="skip-recall"
                     type="button"
-                    class="jspsych-btn"
-                >
+                    class="jspsych-btn recall-skip"
+                    >
                     Nem emlékszem
                 </button>
-            </p>
-        `,
+            </div>
+            `,
 
                 button_label: "Válasz rögzítése",
                 autofocus: "recall-input",
@@ -382,6 +490,15 @@
                     const input = document.getElementById("recall-input");
                     const status = document.getElementById("recall-status");
                     const skipButton = document.getElementById("skip-recall");
+
+                    // Moves the plugin's existing submit button next to the skip button.
+                    const submitButton = document.getElementById(
+                        "jspsych-survey-html-form-next"
+                    );
+
+                    submitButton.classList.add("recall-submit");
+
+                    document.getElementById("recall-actions").appendChild(submitButton);
 
                     // Rejects empty answers and answers containing only whitespace.
                     function validateAnswer() {
@@ -438,7 +555,7 @@
                 <p>Az Ön válasza:</p>
 
                 <div class="word-pair">
-                    ${escapeHtml(pair.cue.toLocaleUpperCase("hu-HU"))}
+                    ${escapeHtml(pair.cue.toLocaleLowerCase("hu-HU"))}
                     –
                     ${escapeHtml(recallRecord.recall_response_text)}
                 </div>
@@ -653,6 +770,9 @@
             jsPsych.data.addProperties({
                 participant_id: participantId,
                 experiment_version: EXPERIMENT_VERSION,
+                main_pair_count: mainPairs.length,
+                pair_pool_size: mainPairPool.length,
+                pair_display_ms: SETTINGS.pairDisplayMs,
                 session_start_utc: sessionStartUtc,
                 run_mode: IS_JATOS ? "jatos" : "local",
                 jatos_study_result_id: IS_JATOS ? jatos.studyResultId : "",
