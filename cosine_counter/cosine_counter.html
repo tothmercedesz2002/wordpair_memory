@@ -2217,7 +2217,7 @@ vertical-align: -.125em;
   <li><a href="#words" id="toc-words" class="nav-link" data-scroll-target="#words">Words</a></li>
   <li><a href="#word-pool" id="toc-word-pool" class="nav-link" data-scroll-target="#word-pool">Word pool</a></li>
   <li><a href="#validation-of-the-word-pool" id="toc-validation-of-the-word-pool" class="nav-link" data-scroll-target="#validation-of-the-word-pool">Validation of the word pool</a></li>
-  <li><a href="#stream-the-.vec.vec.gz-file-in-chunks-and-retain-only-requested-vectors." id="toc-stream-the-.vec.vec.gz-file-in-chunks-and-retain-only-requested-vectors." class="nav-link" data-scroll-target="#stream-the-.vec.vec.gz-file-in-chunks-and-retain-only-requested-vectors.">Stream the .vec/.vec.gz file in chunks and retain only requested vectors.</a></li>
+  <li><a href="#stream-the-.vec.vec.gz-file-in-chunks-and-retain-only-requested-vectors" id="toc-stream-the-.vec.vec.gz-file-in-chunks-and-retain-only-requested-vectors" class="nav-link" data-scroll-target="#stream-the-.vec.vec.gz-file-in-chunks-and-retain-only-requested-vectors">Stream the .vec/.vec.gz file in chunks and retain only requested vectors</a></li>
   <li><a href="#calculating-pairwise-cosine-similarities" id="toc-calculating-pairwise-cosine-similarities" class="nav-link" data-scroll-target="#calculating-pairwise-cosine-similarities">Calculating pairwise cosine similarities</a></li>
   <li><a href="#run-analyses" id="toc-run-analyses" class="nav-link" data-scroll-target="#run-analyses">Run analyses</a></li>
   <li><a href="#save-the-results-of-the-analysis-and-filter-for-candidate-pairs-with-cosine-similarity-between-0.15-and-0.30." id="toc-save-the-results-of-the-analysis-and-filter-for-candidate-pairs-with-cosine-similarity-between-0.15-and-0.30." class="nav-link" data-scroll-target="#save-the-results-of-the-analysis-and-filter-for-candidate-pairs-with-cosine-similarity-between-0.15-and-0.30.">Save the results of the analysis and filter for candidate pairs with cosine similarity between 0.15 and 0.30.</a></li>
@@ -2271,7 +2271,12 @@ text-align: justify;
 </section>
 <section id="information" class="level1">
 <h1>Information</h1>
-<p>Model: fastText, Hungarian Common Crawl + Wikipedia, 300 dimensions. Documentation: https://fasttext.cc/docs/en/crawl-vectors.html Citation: Grave, Bojanowski, Gupta, Joulin, &amp; Mikolov (2018). Learning Word Vectors for 157 Languages. LREC. Model license: CC BY-SA 3.0.</p>
+<p>Model: fastText, Hungarian Common Crawl + Wikipedia, 300 dimensions.</p>
+<p>This model can compute cosine similarity for any pair of words in its vocabulary. Cosine similarity is a measure of semantic similarity between two words, ranging from -1 (opposite meaning) to 1 (identical meaning). The model does not generate vectors for out-of-vocabulary words. This value is calculated as the cosine of the angle between the two word vectors in the 300-dimensional space.</p>
+<p>Documentation: https://fasttext.cc/docs/en/crawl-vectors.html</p>
+<p>Citation: Grave, Bojanowski, Gupta, Joulin, &amp; Mikolov (2018).</p>
+<p>Learning Word Vectors for 157 Languages. LREC.</p>
+<p>Model license: CC BY-SA 3.0.</p>
 <p>The words here are a project-specific, non-normed candidate pool. The words were AI generated or added randomly. Familiarity/concreteness/neutrality were qualitative selection intentions, not measured or matched properties. No cosine values are invented.</p>
 </section>
 <section id="settings" class="level1">
@@ -2356,98 +2361,99 @@ text-align: justify;
 <span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 </section>
-<section id="stream-the-.vec.vec.gz-file-in-chunks-and-retain-only-requested-vectors." class="level1">
-<h1>Stream the .vec/.vec.gz file in chunks and retain only requested vectors.</h1>
+<section id="stream-the-.vec.vec.gz-file-in-chunks-and-retain-only-requested-vectors" class="level1">
+<h1>Stream the .vec/.vec.gz file in chunks and retain only requested vectors</h1>
 <p>Unlike loading the entire model, this does not require its full size in RAM. Text vectors cannot generate vectors for out-of-vocabulary words.</p>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>read_selected_vectors <span class="ot">&lt;-</span> <span class="cf">function</span>(model_file, words, <span class="at">chunk_size =</span> <span class="dv">5000</span>L) {</span>
-<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (<span class="sc">!</span><span class="fu">file.exists</span>(model_file)) {</span>
-<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">stop</span>(</span>
-<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>      <span class="st">&quot;Model file not found: &quot;</span>, model_file,</span>
-<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>      <span class="st">&quot;</span><span class="sc">\n</span><span class="st">Download cc.hu.300.vec.gz and update SETTINGS$model_file.&quot;</span>,</span>
-<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>      <span class="st">&quot;</span><span class="sc">\n</span><span class="st">Use the TEXT (.vec.gz) download, not the binary (.bin.gz) model.&quot;</span></span>
-<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>    )</span>
-<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>  }</span>
-<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (<span class="fu">length</span>(chunk_size) <span class="sc">!=</span> <span class="dv">1</span>L <span class="sc">||</span> <span class="fu">is.na</span>(chunk_size) <span class="sc">||</span></span>
-<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>      chunk_size <span class="sc">&lt;</span> <span class="dv">1</span>L <span class="sc">||</span> chunk_size <span class="sc">!=</span> <span class="fu">as.integer</span>(chunk_size)) {</span>
-<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>    <span class="fu">stop</span>(<span class="st">&quot;chunk_size must be a positive integer.&quot;</span>)</span>
-<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a>  }</span>
-<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Mark input as UTF-8 in readLines instead of converting it to the native</span></span>
-<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Windows locale, which may not be able to represent Hungarian accents.</span></span>
-<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a>  connection <span class="ot">&lt;-</span> <span class="cf">if</span> (<span class="fu">grepl</span>(<span class="st">&quot;</span><span class="sc">\\</span><span class="st">.gz$&quot;</span>, model_file, <span class="at">ignore.case =</span> <span class="cn">TRUE</span>)) {</span>
-<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a>    <span class="fu">gzfile</span>(model_file, <span class="at">open =</span> <span class="st">&quot;rt&quot;</span>)</span>
-<span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a>  } <span class="cf">else</span> {</span>
-<span id="cb5-19"><a href="#cb5-19" aria-hidden="true" tabindex="-1"></a>    <span class="fu">file</span>(model_file, <span class="at">open =</span> <span class="st">&quot;rt&quot;</span>)</span>
-<span id="cb5-20"><a href="#cb5-20" aria-hidden="true" tabindex="-1"></a>  }</span>
-<span id="cb5-21"><a href="#cb5-21" aria-hidden="true" tabindex="-1"></a>  <span class="fu">on.exit</span>(<span class="fu">close</span>(connection), <span class="at">add =</span> <span class="cn">TRUE</span>)</span>
-<span id="cb5-22"><a href="#cb5-22" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-23"><a href="#cb5-23" aria-hidden="true" tabindex="-1"></a>  first_line <span class="ot">&lt;-</span> <span class="fu">readLines</span>(connection, <span class="at">n =</span> <span class="dv">1</span>L, <span class="at">warn =</span> <span class="cn">FALSE</span>, <span class="at">encoding =</span> <span class="st">&quot;UTF-8&quot;</span>)</span>
-<span id="cb5-24"><a href="#cb5-24" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (<span class="sc">!</span><span class="fu">length</span>(first_line)) <span class="fu">stop</span>(<span class="st">&quot;The model file is empty.&quot;</span>)</span>
-<span id="cb5-25"><a href="#cb5-25" aria-hidden="true" tabindex="-1"></a>  first_line <span class="ot">&lt;-</span> <span class="fu">sub</span>(<span class="st">&quot;^\ufeff&quot;</span>, <span class="st">&quot;&quot;</span>, first_line)</span>
-<span id="cb5-26"><a href="#cb5-26" aria-hidden="true" tabindex="-1"></a>  header <span class="ot">&lt;-</span> <span class="fu">strsplit</span>(<span class="fu">trimws</span>(first_line), <span class="st">&quot;[[:space:]]+&quot;</span>)[[<span class="dv">1</span>L]]</span>
-<span id="cb5-27"><a href="#cb5-27" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (<span class="fu">length</span>(header) <span class="sc">!=</span> <span class="dv">2</span>L <span class="sc">||</span> <span class="sc">!</span><span class="fu">all</span>(<span class="fu">grepl</span>(<span class="st">&quot;^[0-9]+$&quot;</span>, header))) {</span>
-<span id="cb5-28"><a href="#cb5-28" aria-hidden="true" tabindex="-1"></a>    <span class="fu">stop</span>(<span class="st">&quot;Expected a text-vector header: vocabulary_size dimensions.&quot;</span>)</span>
-<span id="cb5-29"><a href="#cb5-29" aria-hidden="true" tabindex="-1"></a>  }</span>
-<span id="cb5-30"><a href="#cb5-30" aria-hidden="true" tabindex="-1"></a>  vocabulary_size <span class="ot">&lt;-</span> <span class="fu">as.numeric</span>(header[<span class="dv">1</span>L])</span>
-<span id="cb5-31"><a href="#cb5-31" aria-hidden="true" tabindex="-1"></a>  dimensions <span class="ot">&lt;-</span> <span class="fu">as.integer</span>(header[<span class="dv">2</span>L])</span>
-<span id="cb5-32"><a href="#cb5-32" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (<span class="sc">!</span><span class="fu">is.finite</span>(vocabulary_size) <span class="sc">||</span> vocabulary_size <span class="sc">&lt;</span> <span class="dv">1</span> <span class="sc">||</span></span>
-<span id="cb5-33"><a href="#cb5-33" aria-hidden="true" tabindex="-1"></a>      <span class="fu">is.na</span>(dimensions) <span class="sc">||</span> dimensions <span class="sc">&lt;</span> <span class="dv">1</span>L) {</span>
-<span id="cb5-34"><a href="#cb5-34" aria-hidden="true" tabindex="-1"></a>    <span class="fu">stop</span>(<span class="st">&quot;Invalid model dimensions or vocabulary size.&quot;</span>)</span>
-<span id="cb5-35"><a href="#cb5-35" aria-hidden="true" tabindex="-1"></a>  }</span>
-<span id="cb5-36"><a href="#cb5-36" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-37"><a href="#cb5-37" aria-hidden="true" tabindex="-1"></a>  vectors <span class="ot">&lt;-</span> <span class="fu">matrix</span>(</span>
-<span id="cb5-38"><a href="#cb5-38" aria-hidden="true" tabindex="-1"></a>    <span class="cn">NA_real_</span>, <span class="at">nrow =</span> <span class="fu">length</span>(words), <span class="at">ncol =</span> dimensions,</span>
-<span id="cb5-39"><a href="#cb5-39" aria-hidden="true" tabindex="-1"></a>    <span class="at">dimnames =</span> <span class="fu">list</span>(words, <span class="fu">paste0</span>(<span class="st">&quot;dim_&quot;</span>, <span class="fu">seq_len</span>(dimensions)))</span>
-<span id="cb5-40"><a href="#cb5-40" aria-hidden="true" tabindex="-1"></a>  )</span>
-<span id="cb5-41"><a href="#cb5-41" aria-hidden="true" tabindex="-1"></a>  found <span class="ot">&lt;-</span> <span class="fu">rep</span>(<span class="cn">FALSE</span>, <span class="fu">length</span>(words))</span>
-<span id="cb5-42"><a href="#cb5-42" aria-hidden="true" tabindex="-1"></a>  scanned <span class="ot">&lt;-</span> <span class="dv">0</span></span>
-<span id="cb5-43"><a href="#cb5-43" aria-hidden="true" tabindex="-1"></a>  next_progress <span class="ot">&lt;-</span> <span class="dv">100000</span></span>
-<span id="cb5-44"><a href="#cb5-44" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-45"><a href="#cb5-45" aria-hidden="true" tabindex="-1"></a>  <span class="cf">repeat</span> {</span>
-<span id="cb5-46"><a href="#cb5-46" aria-hidden="true" tabindex="-1"></a>    lines <span class="ot">&lt;-</span> <span class="fu">readLines</span>(connection, <span class="at">n =</span> chunk_size, <span class="at">warn =</span> <span class="cn">FALSE</span>,</span>
-<span id="cb5-47"><a href="#cb5-47" aria-hidden="true" tabindex="-1"></a>                       <span class="at">encoding =</span> <span class="st">&quot;UTF-8&quot;</span>)</span>
-<span id="cb5-48"><a href="#cb5-48" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> (<span class="sc">!</span><span class="fu">length</span>(lines)) <span class="cf">break</span></span>
-<span id="cb5-49"><a href="#cb5-49" aria-hidden="true" tabindex="-1"></a>    scanned <span class="ot">&lt;-</span> scanned <span class="sc">+</span> <span class="fu">length</span>(lines)</span>
-<span id="cb5-50"><a href="#cb5-50" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-51"><a href="#cb5-51" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Identify the first token without splitting every full vector.</span></span>
-<span id="cb5-52"><a href="#cb5-52" aria-hidden="true" tabindex="-1"></a>    separators <span class="ot">&lt;-</span> <span class="fu">regexpr</span>(<span class="st">&quot;[ </span><span class="sc">\t</span><span class="st">]&quot;</span>, lines)</span>
-<span id="cb5-53"><a href="#cb5-53" aria-hidden="true" tabindex="-1"></a>    tokens <span class="ot">&lt;-</span> <span class="fu">substring</span>(lines, <span class="dv">1</span>L, <span class="fu">pmax</span>(<span class="dv">0</span>L, separators <span class="sc">-</span> <span class="dv">1</span>L))</span>
-<span id="cb5-54"><a href="#cb5-54" aria-hidden="true" tabindex="-1"></a>    indices <span class="ot">&lt;-</span> <span class="fu">match</span>(tokens, words)</span>
-<span id="cb5-55"><a href="#cb5-55" aria-hidden="true" tabindex="-1"></a>    matches <span class="ot">&lt;-</span> <span class="fu">which</span>(<span class="sc">!</span><span class="fu">is.na</span>(indices))</span>
-<span id="cb5-56"><a href="#cb5-56" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-57"><a href="#cb5-57" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> (line_number <span class="cf">in</span> matches) {</span>
-<span id="cb5-58"><a href="#cb5-58" aria-hidden="true" tabindex="-1"></a>      word_number <span class="ot">&lt;-</span> indices[line_number]</span>
-<span id="cb5-59"><a href="#cb5-59" aria-hidden="true" tabindex="-1"></a>      <span class="cf">if</span> (found[word_number]) <span class="cf">next</span></span>
-<span id="cb5-60"><a href="#cb5-60" aria-hidden="true" tabindex="-1"></a>      vector_text <span class="ot">&lt;-</span> <span class="fu">substring</span>(lines[line_number],</span>
-<span id="cb5-61"><a href="#cb5-61" aria-hidden="true" tabindex="-1"></a>                               separators[line_number] <span class="sc">+</span> <span class="dv">1</span>L)</span>
-<span id="cb5-62"><a href="#cb5-62" aria-hidden="true" tabindex="-1"></a>      values <span class="ot">&lt;-</span> <span class="fu">scan</span>(<span class="at">text =</span> vector_text, <span class="at">what =</span> <span class="fu">double</span>(), <span class="at">quiet =</span> <span class="cn">TRUE</span>)</span>
-<span id="cb5-63"><a href="#cb5-63" aria-hidden="true" tabindex="-1"></a>      <span class="cf">if</span> (<span class="fu">length</span>(values) <span class="sc">!=</span> dimensions <span class="sc">||</span> <span class="fu">any</span>(<span class="sc">!</span><span class="fu">is.finite</span>(values))) {</span>
-<span id="cb5-64"><a href="#cb5-64" aria-hidden="true" tabindex="-1"></a>        <span class="fu">stop</span>(<span class="st">&quot;Invalid vector for word: &quot;</span>, words[word_number])</span>
-<span id="cb5-65"><a href="#cb5-65" aria-hidden="true" tabindex="-1"></a>      }</span>
-<span id="cb5-66"><a href="#cb5-66" aria-hidden="true" tabindex="-1"></a>      vectors[word_number, ] <span class="ot">&lt;-</span> values</span>
-<span id="cb5-67"><a href="#cb5-67" aria-hidden="true" tabindex="-1"></a>      found[word_number] <span class="ot">&lt;-</span> <span class="cn">TRUE</span></span>
-<span id="cb5-68"><a href="#cb5-68" aria-hidden="true" tabindex="-1"></a>    }</span>
-<span id="cb5-69"><a href="#cb5-69" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-70"><a href="#cb5-70" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> (<span class="fu">all</span>(found)) <span class="cf">break</span></span>
-<span id="cb5-71"><a href="#cb5-71" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> (scanned <span class="sc">&gt;=</span> next_progress) {</span>
-<span id="cb5-72"><a href="#cb5-72" aria-hidden="true" tabindex="-1"></a>      <span class="fu">message</span>(<span class="st">&quot;Scanned &quot;</span>, scanned, <span class="st">&quot; rows; found &quot;</span>,</span>
-<span id="cb5-73"><a href="#cb5-73" aria-hidden="true" tabindex="-1"></a>              <span class="fu">sum</span>(found), <span class="st">&quot;/&quot;</span>, <span class="fu">length</span>(words), <span class="st">&quot; words.&quot;</span>)</span>
-<span id="cb5-74"><a href="#cb5-74" aria-hidden="true" tabindex="-1"></a>      next_progress <span class="ot">&lt;-</span> scanned <span class="sc">+</span> <span class="dv">100000</span></span>
-<span id="cb5-75"><a href="#cb5-75" aria-hidden="true" tabindex="-1"></a>    }</span>
-<span id="cb5-76"><a href="#cb5-76" aria-hidden="true" tabindex="-1"></a>  }</span>
-<span id="cb5-77"><a href="#cb5-77" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-78"><a href="#cb5-78" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (<span class="sc">!</span><span class="fu">all</span>(found)) {</span>
-<span id="cb5-79"><a href="#cb5-79" aria-hidden="true" tabindex="-1"></a>    <span class="fu">stop</span>(</span>
-<span id="cb5-80"><a href="#cb5-80" aria-hidden="true" tabindex="-1"></a>      <span class="st">&quot;Missing words in the model: &quot;</span>,</span>
-<span id="cb5-81"><a href="#cb5-81" aria-hidden="true" tabindex="-1"></a>      <span class="fu">paste</span>(words[<span class="sc">!</span>found], <span class="at">collapse =</span> <span class="st">&quot;, &quot;</span>),</span>
-<span id="cb5-82"><a href="#cb5-82" aria-hidden="true" tabindex="-1"></a>      <span class="st">&quot;</span><span class="sc">\n</span><span class="st">No scores were substituted and no words were silently dropped.&quot;</span>,</span>
-<span id="cb5-83"><a href="#cb5-83" aria-hidden="true" tabindex="-1"></a>      <span class="st">&quot;</span><span class="sc">\n</span><span class="st">Check spelling, UTF-8 encoding, model choice, and download completeness.&quot;</span></span>
-<span id="cb5-84"><a href="#cb5-84" aria-hidden="true" tabindex="-1"></a>    )</span>
-<span id="cb5-85"><a href="#cb5-85" aria-hidden="true" tabindex="-1"></a>  }</span>
-<span id="cb5-86"><a href="#cb5-86" aria-hidden="true" tabindex="-1"></a>  <span class="fu">list</span>(<span class="at">vectors =</span> vectors, <span class="at">vocabulary_size =</span> vocabulary_size,</span>
-<span id="cb5-87"><a href="#cb5-87" aria-hidden="true" tabindex="-1"></a>       <span class="at">dimensions =</span> dimensions)</span>
-<span id="cb5-88"><a href="#cb5-88" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Read the selected word vectors from the model file in chunks to avoid memory issues. The function checks for the existence of the model file, validates the chunk size, and reads the vectors for the specified words. It returns a list containing the vectors, vocabulary size, and dimensions.</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>read_selected_vectors <span class="ot">&lt;-</span> <span class="cf">function</span>(model_file, words, <span class="at">chunk_size =</span> <span class="dv">5000</span>L) {</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (<span class="sc">!</span><span class="fu">file.exists</span>(model_file)) {</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">stop</span>(</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>      <span class="st">&quot;Model file not found: &quot;</span>, model_file,</span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>      <span class="st">&quot;</span><span class="sc">\n</span><span class="st">Download cc.hu.300.vec.gz and update SETTINGS$model_file.&quot;</span>,</span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>      <span class="st">&quot;</span><span class="sc">\n</span><span class="st">Use the TEXT (.vec.gz) download, not the binary (.bin.gz) model.&quot;</span></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (<span class="fu">length</span>(chunk_size) <span class="sc">!=</span> <span class="dv">1</span>L <span class="sc">||</span> <span class="fu">is.na</span>(chunk_size) <span class="sc">||</span></span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>      chunk_size <span class="sc">&lt;</span> <span class="dv">1</span>L <span class="sc">||</span> chunk_size <span class="sc">!=</span> <span class="fu">as.integer</span>(chunk_size)) {</span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a>    <span class="fu">stop</span>(<span class="st">&quot;chunk_size must be a positive integer.&quot;</span>)</span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Mark input as UTF-8 in readLines instead of converting it to the native</span></span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Windows locale, which may not be able to represent Hungarian accents.</span></span>
+<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a>  connection <span class="ot">&lt;-</span> <span class="cf">if</span> (<span class="fu">grepl</span>(<span class="st">&quot;</span><span class="sc">\\</span><span class="st">.gz$&quot;</span>, model_file, <span class="at">ignore.case =</span> <span class="cn">TRUE</span>)) {</span>
+<span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a>    <span class="fu">gzfile</span>(model_file, <span class="at">open =</span> <span class="st">&quot;rt&quot;</span>)</span>
+<span id="cb5-19"><a href="#cb5-19" aria-hidden="true" tabindex="-1"></a>  } <span class="cf">else</span> {</span>
+<span id="cb5-20"><a href="#cb5-20" aria-hidden="true" tabindex="-1"></a>    <span class="fu">file</span>(model_file, <span class="at">open =</span> <span class="st">&quot;rt&quot;</span>)</span>
+<span id="cb5-21"><a href="#cb5-21" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb5-22"><a href="#cb5-22" aria-hidden="true" tabindex="-1"></a>  <span class="fu">on.exit</span>(<span class="fu">close</span>(connection), <span class="at">add =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb5-23"><a href="#cb5-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-24"><a href="#cb5-24" aria-hidden="true" tabindex="-1"></a>  first_line <span class="ot">&lt;-</span> <span class="fu">readLines</span>(connection, <span class="at">n =</span> <span class="dv">1</span>L, <span class="at">warn =</span> <span class="cn">FALSE</span>, <span class="at">encoding =</span> <span class="st">&quot;UTF-8&quot;</span>)</span>
+<span id="cb5-25"><a href="#cb5-25" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (<span class="sc">!</span><span class="fu">length</span>(first_line)) <span class="fu">stop</span>(<span class="st">&quot;The model file is empty.&quot;</span>)</span>
+<span id="cb5-26"><a href="#cb5-26" aria-hidden="true" tabindex="-1"></a>  first_line <span class="ot">&lt;-</span> <span class="fu">sub</span>(<span class="st">&quot;^\ufeff&quot;</span>, <span class="st">&quot;&quot;</span>, first_line)</span>
+<span id="cb5-27"><a href="#cb5-27" aria-hidden="true" tabindex="-1"></a>  header <span class="ot">&lt;-</span> <span class="fu">strsplit</span>(<span class="fu">trimws</span>(first_line), <span class="st">&quot;[[:space:]]+&quot;</span>)[[<span class="dv">1</span>L]]</span>
+<span id="cb5-28"><a href="#cb5-28" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (<span class="fu">length</span>(header) <span class="sc">!=</span> <span class="dv">2</span>L <span class="sc">||</span> <span class="sc">!</span><span class="fu">all</span>(<span class="fu">grepl</span>(<span class="st">&quot;^[0-9]+$&quot;</span>, header))) {</span>
+<span id="cb5-29"><a href="#cb5-29" aria-hidden="true" tabindex="-1"></a>    <span class="fu">stop</span>(<span class="st">&quot;Expected a text-vector header: vocabulary_size dimensions.&quot;</span>)</span>
+<span id="cb5-30"><a href="#cb5-30" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb5-31"><a href="#cb5-31" aria-hidden="true" tabindex="-1"></a>  vocabulary_size <span class="ot">&lt;-</span> <span class="fu">as.numeric</span>(header[<span class="dv">1</span>L])</span>
+<span id="cb5-32"><a href="#cb5-32" aria-hidden="true" tabindex="-1"></a>  dimensions <span class="ot">&lt;-</span> <span class="fu">as.integer</span>(header[<span class="dv">2</span>L])</span>
+<span id="cb5-33"><a href="#cb5-33" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (<span class="sc">!</span><span class="fu">is.finite</span>(vocabulary_size) <span class="sc">||</span> vocabulary_size <span class="sc">&lt;</span> <span class="dv">1</span> <span class="sc">||</span></span>
+<span id="cb5-34"><a href="#cb5-34" aria-hidden="true" tabindex="-1"></a>      <span class="fu">is.na</span>(dimensions) <span class="sc">||</span> dimensions <span class="sc">&lt;</span> <span class="dv">1</span>L) {</span>
+<span id="cb5-35"><a href="#cb5-35" aria-hidden="true" tabindex="-1"></a>    <span class="fu">stop</span>(<span class="st">&quot;Invalid model dimensions or vocabulary size.&quot;</span>)</span>
+<span id="cb5-36"><a href="#cb5-36" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb5-37"><a href="#cb5-37" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-38"><a href="#cb5-38" aria-hidden="true" tabindex="-1"></a>  vectors <span class="ot">&lt;-</span> <span class="fu">matrix</span>(</span>
+<span id="cb5-39"><a href="#cb5-39" aria-hidden="true" tabindex="-1"></a>    <span class="cn">NA_real_</span>, <span class="at">nrow =</span> <span class="fu">length</span>(words), <span class="at">ncol =</span> dimensions,</span>
+<span id="cb5-40"><a href="#cb5-40" aria-hidden="true" tabindex="-1"></a>    <span class="at">dimnames =</span> <span class="fu">list</span>(words, <span class="fu">paste0</span>(<span class="st">&quot;dim_&quot;</span>, <span class="fu">seq_len</span>(dimensions)))</span>
+<span id="cb5-41"><a href="#cb5-41" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb5-42"><a href="#cb5-42" aria-hidden="true" tabindex="-1"></a>  found <span class="ot">&lt;-</span> <span class="fu">rep</span>(<span class="cn">FALSE</span>, <span class="fu">length</span>(words))</span>
+<span id="cb5-43"><a href="#cb5-43" aria-hidden="true" tabindex="-1"></a>  scanned <span class="ot">&lt;-</span> <span class="dv">0</span></span>
+<span id="cb5-44"><a href="#cb5-44" aria-hidden="true" tabindex="-1"></a>  next_progress <span class="ot">&lt;-</span> <span class="dv">100000</span></span>
+<span id="cb5-45"><a href="#cb5-45" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-46"><a href="#cb5-46" aria-hidden="true" tabindex="-1"></a>  <span class="cf">repeat</span> {</span>
+<span id="cb5-47"><a href="#cb5-47" aria-hidden="true" tabindex="-1"></a>    lines <span class="ot">&lt;-</span> <span class="fu">readLines</span>(connection, <span class="at">n =</span> chunk_size, <span class="at">warn =</span> <span class="cn">FALSE</span>,</span>
+<span id="cb5-48"><a href="#cb5-48" aria-hidden="true" tabindex="-1"></a>                       <span class="at">encoding =</span> <span class="st">&quot;UTF-8&quot;</span>)</span>
+<span id="cb5-49"><a href="#cb5-49" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> (<span class="sc">!</span><span class="fu">length</span>(lines)) <span class="cf">break</span></span>
+<span id="cb5-50"><a href="#cb5-50" aria-hidden="true" tabindex="-1"></a>    scanned <span class="ot">&lt;-</span> scanned <span class="sc">+</span> <span class="fu">length</span>(lines)</span>
+<span id="cb5-51"><a href="#cb5-51" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-52"><a href="#cb5-52" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Identify the first token without splitting every full vector.</span></span>
+<span id="cb5-53"><a href="#cb5-53" aria-hidden="true" tabindex="-1"></a>    separators <span class="ot">&lt;-</span> <span class="fu">regexpr</span>(<span class="st">&quot;[ </span><span class="sc">\t</span><span class="st">]&quot;</span>, lines)</span>
+<span id="cb5-54"><a href="#cb5-54" aria-hidden="true" tabindex="-1"></a>    tokens <span class="ot">&lt;-</span> <span class="fu">substring</span>(lines, <span class="dv">1</span>L, <span class="fu">pmax</span>(<span class="dv">0</span>L, separators <span class="sc">-</span> <span class="dv">1</span>L))</span>
+<span id="cb5-55"><a href="#cb5-55" aria-hidden="true" tabindex="-1"></a>    indices <span class="ot">&lt;-</span> <span class="fu">match</span>(tokens, words)</span>
+<span id="cb5-56"><a href="#cb5-56" aria-hidden="true" tabindex="-1"></a>    matches <span class="ot">&lt;-</span> <span class="fu">which</span>(<span class="sc">!</span><span class="fu">is.na</span>(indices))</span>
+<span id="cb5-57"><a href="#cb5-57" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-58"><a href="#cb5-58" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> (line_number <span class="cf">in</span> matches) {</span>
+<span id="cb5-59"><a href="#cb5-59" aria-hidden="true" tabindex="-1"></a>      word_number <span class="ot">&lt;-</span> indices[line_number]</span>
+<span id="cb5-60"><a href="#cb5-60" aria-hidden="true" tabindex="-1"></a>      <span class="cf">if</span> (found[word_number]) <span class="cf">next</span></span>
+<span id="cb5-61"><a href="#cb5-61" aria-hidden="true" tabindex="-1"></a>      vector_text <span class="ot">&lt;-</span> <span class="fu">substring</span>(lines[line_number],</span>
+<span id="cb5-62"><a href="#cb5-62" aria-hidden="true" tabindex="-1"></a>                               separators[line_number] <span class="sc">+</span> <span class="dv">1</span>L)</span>
+<span id="cb5-63"><a href="#cb5-63" aria-hidden="true" tabindex="-1"></a>      values <span class="ot">&lt;-</span> <span class="fu">scan</span>(<span class="at">text =</span> vector_text, <span class="at">what =</span> <span class="fu">double</span>(), <span class="at">quiet =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb5-64"><a href="#cb5-64" aria-hidden="true" tabindex="-1"></a>      <span class="cf">if</span> (<span class="fu">length</span>(values) <span class="sc">!=</span> dimensions <span class="sc">||</span> <span class="fu">any</span>(<span class="sc">!</span><span class="fu">is.finite</span>(values))) {</span>
+<span id="cb5-65"><a href="#cb5-65" aria-hidden="true" tabindex="-1"></a>        <span class="fu">stop</span>(<span class="st">&quot;Invalid vector for word: &quot;</span>, words[word_number])</span>
+<span id="cb5-66"><a href="#cb5-66" aria-hidden="true" tabindex="-1"></a>      }</span>
+<span id="cb5-67"><a href="#cb5-67" aria-hidden="true" tabindex="-1"></a>      vectors[word_number, ] <span class="ot">&lt;-</span> values</span>
+<span id="cb5-68"><a href="#cb5-68" aria-hidden="true" tabindex="-1"></a>      found[word_number] <span class="ot">&lt;-</span> <span class="cn">TRUE</span></span>
+<span id="cb5-69"><a href="#cb5-69" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb5-70"><a href="#cb5-70" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-71"><a href="#cb5-71" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> (<span class="fu">all</span>(found)) <span class="cf">break</span></span>
+<span id="cb5-72"><a href="#cb5-72" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> (scanned <span class="sc">&gt;=</span> next_progress) {</span>
+<span id="cb5-73"><a href="#cb5-73" aria-hidden="true" tabindex="-1"></a>      <span class="fu">message</span>(<span class="st">&quot;Scanned &quot;</span>, scanned, <span class="st">&quot; rows; found &quot;</span>,</span>
+<span id="cb5-74"><a href="#cb5-74" aria-hidden="true" tabindex="-1"></a>              <span class="fu">sum</span>(found), <span class="st">&quot;/&quot;</span>, <span class="fu">length</span>(words), <span class="st">&quot; words.&quot;</span>)</span>
+<span id="cb5-75"><a href="#cb5-75" aria-hidden="true" tabindex="-1"></a>      next_progress <span class="ot">&lt;-</span> scanned <span class="sc">+</span> <span class="dv">100000</span></span>
+<span id="cb5-76"><a href="#cb5-76" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb5-77"><a href="#cb5-77" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb5-78"><a href="#cb5-78" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-79"><a href="#cb5-79" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (<span class="sc">!</span><span class="fu">all</span>(found)) {</span>
+<span id="cb5-80"><a href="#cb5-80" aria-hidden="true" tabindex="-1"></a>    <span class="fu">stop</span>(</span>
+<span id="cb5-81"><a href="#cb5-81" aria-hidden="true" tabindex="-1"></a>      <span class="st">&quot;Missing words in the model: &quot;</span>,</span>
+<span id="cb5-82"><a href="#cb5-82" aria-hidden="true" tabindex="-1"></a>      <span class="fu">paste</span>(words[<span class="sc">!</span>found], <span class="at">collapse =</span> <span class="st">&quot;, &quot;</span>),</span>
+<span id="cb5-83"><a href="#cb5-83" aria-hidden="true" tabindex="-1"></a>      <span class="st">&quot;</span><span class="sc">\n</span><span class="st">No scores were substituted and no words were silently dropped.&quot;</span>,</span>
+<span id="cb5-84"><a href="#cb5-84" aria-hidden="true" tabindex="-1"></a>      <span class="st">&quot;</span><span class="sc">\n</span><span class="st">Check spelling, UTF-8 encoding, model choice, and download completeness.&quot;</span></span>
+<span id="cb5-85"><a href="#cb5-85" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb5-86"><a href="#cb5-86" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb5-87"><a href="#cb5-87" aria-hidden="true" tabindex="-1"></a>  <span class="fu">list</span>(<span class="at">vectors =</span> vectors, <span class="at">vocabulary_size =</span> vocabulary_size,</span>
+<span id="cb5-88"><a href="#cb5-88" aria-hidden="true" tabindex="-1"></a>       <span class="at">dimensions =</span> dimensions)</span>
+<span id="cb5-89"><a href="#cb5-89" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 </section>
 <section id="calculating-pairwise-cosine-similarities" class="level1">
@@ -2465,103 +2471,105 @@ text-align: justify;
 <span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>    <span class="fu">stop</span>(<span class="st">&quot;Cannot compute cosine for a zero-length or invalid vector.&quot;</span>)</span>
 <span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a>  }</span>
 <span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a>  unit_vectors <span class="ot">&lt;-</span> <span class="fu">sweep</span>(vectors, <span class="dv">1</span>L, norms, <span class="st">&quot;/&quot;</span>)</span>
-<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a>  similarities <span class="ot">&lt;-</span> <span class="fu">tcrossprod</span>(unit_vectors)</span>
-<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Correct only floating-point overshoot at -1/+1.</span></span>
-<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a>  similarities[] <span class="ot">&lt;-</span> <span class="fu">pmax</span>(<span class="sc">-</span><span class="dv">1</span>, <span class="fu">pmin</span>(<span class="dv">1</span>, similarities))</span>
-<span id="cb6-16"><a href="#cb6-16" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-17"><a href="#cb6-17" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Unordered combinations: A-B once, no B-A duplicate, no A-A comparison.</span></span>
-<span id="cb6-18"><a href="#cb6-18" aria-hidden="true" tabindex="-1"></a>  combinations <span class="ot">&lt;-</span> <span class="fu">t</span>(<span class="fu">combn</span>(<span class="fu">seq_len</span>(<span class="fu">nrow</span>(pool)), <span class="dv">2</span>L))</span>
-<span id="cb6-19"><a href="#cb6-19" aria-hidden="true" tabindex="-1"></a>  result <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
-<span id="cb6-20"><a href="#cb6-20" aria-hidden="true" tabindex="-1"></a>    <span class="at">combination_id =</span> <span class="fu">sprintf</span>(<span class="st">&quot;combination_%04d&quot;</span>, <span class="fu">seq_len</span>(<span class="fu">nrow</span>(combinations))),</span>
-<span id="cb6-21"><a href="#cb6-21" aria-hidden="true" tabindex="-1"></a>    <span class="at">word_1_id =</span> pool<span class="sc">$</span>word_id[combinations[, <span class="dv">1</span>L]],</span>
-<span id="cb6-22"><a href="#cb6-22" aria-hidden="true" tabindex="-1"></a>    <span class="at">word_1 =</span> pool<span class="sc">$</span>word[combinations[, <span class="dv">1</span>L]],</span>
-<span id="cb6-23"><a href="#cb6-23" aria-hidden="true" tabindex="-1"></a>    <span class="at">word_2_id =</span> pool<span class="sc">$</span>word_id[combinations[, <span class="dv">2</span>L]],</span>
-<span id="cb6-24"><a href="#cb6-24" aria-hidden="true" tabindex="-1"></a>    <span class="at">word_2 =</span> pool<span class="sc">$</span>word[combinations[, <span class="dv">2</span>L]],</span>
-<span id="cb6-25"><a href="#cb6-25" aria-hidden="true" tabindex="-1"></a>    <span class="at">cosine_similarity =</span> similarities[combinations],</span>
-<span id="cb6-26"><a href="#cb6-26" aria-hidden="true" tabindex="-1"></a>    <span class="at">stringsAsFactors =</span> <span class="cn">FALSE</span></span>
-<span id="cb6-27"><a href="#cb6-27" aria-hidden="true" tabindex="-1"></a>  )</span>
-<span id="cb6-28"><a href="#cb6-28" aria-hidden="true" tabindex="-1"></a>  <span class="fu">stopifnot</span>(<span class="fu">nrow</span>(result) <span class="sc">==</span> <span class="fu">choose</span>(<span class="fu">nrow</span>(pool), <span class="dv">2</span>L))</span>
-<span id="cb6-29"><a href="#cb6-29" aria-hidden="true" tabindex="-1"></a>  result <span class="ot">&lt;-</span> result[<span class="fu">order</span>(<span class="sc">-</span>result<span class="sc">$</span>cosine_similarity,</span>
-<span id="cb6-30"><a href="#cb6-30" aria-hidden="true" tabindex="-1"></a>                         result<span class="sc">$</span>word_1_id, result<span class="sc">$</span>word_2_id), ]</span>
-<span id="cb6-31"><a href="#cb6-31" aria-hidden="true" tabindex="-1"></a>  <span class="fu">rownames</span>(result) <span class="ot">&lt;-</span> <span class="cn">NULL</span></span>
-<span id="cb6-32"><a href="#cb6-32" aria-hidden="true" tabindex="-1"></a>  result</span>
-<span id="cb6-33"><a href="#cb6-33" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Here, we compute the cosine similarity between all pairs of vectors using the tcrossprod function, which calculates the cross-product of the unit vectors. The resulting similarities are then corrected for any floating-point overshoot at -1/+1.</span></span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a>  unit_vectors <span class="ot">&lt;-</span> <span class="fu">sweep</span>(vectors, <span class="dv">1</span>L, norms, <span class="st">&quot;/&quot;</span>)</span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a>  similarities <span class="ot">&lt;-</span> <span class="fu">tcrossprod</span>(unit_vectors)</span>
+<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Correct only floating-point overshoot at -1/+1.</span></span>
+<span id="cb6-16"><a href="#cb6-16" aria-hidden="true" tabindex="-1"></a>  similarities[] <span class="ot">&lt;-</span> <span class="fu">pmax</span>(<span class="sc">-</span><span class="dv">1</span>, <span class="fu">pmin</span>(<span class="dv">1</span>, similarities))</span>
+<span id="cb6-17"><a href="#cb6-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-18"><a href="#cb6-18" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Unordered combinations: A-B once, no B-A duplicate, no A-A comparison.</span></span>
+<span id="cb6-19"><a href="#cb6-19" aria-hidden="true" tabindex="-1"></a>  combinations <span class="ot">&lt;-</span> <span class="fu">t</span>(<span class="fu">combn</span>(<span class="fu">seq_len</span>(<span class="fu">nrow</span>(pool)), <span class="dv">2</span>L))</span>
+<span id="cb6-20"><a href="#cb6-20" aria-hidden="true" tabindex="-1"></a>  result <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
+<span id="cb6-21"><a href="#cb6-21" aria-hidden="true" tabindex="-1"></a>    <span class="at">combination_id =</span> <span class="fu">sprintf</span>(<span class="st">&quot;combination_%04d&quot;</span>, <span class="fu">seq_len</span>(<span class="fu">nrow</span>(combinations))),</span>
+<span id="cb6-22"><a href="#cb6-22" aria-hidden="true" tabindex="-1"></a>    <span class="at">word_1_id =</span> pool<span class="sc">$</span>word_id[combinations[, <span class="dv">1</span>L]],</span>
+<span id="cb6-23"><a href="#cb6-23" aria-hidden="true" tabindex="-1"></a>    <span class="at">word_1 =</span> pool<span class="sc">$</span>word[combinations[, <span class="dv">1</span>L]],</span>
+<span id="cb6-24"><a href="#cb6-24" aria-hidden="true" tabindex="-1"></a>    <span class="at">word_2_id =</span> pool<span class="sc">$</span>word_id[combinations[, <span class="dv">2</span>L]],</span>
+<span id="cb6-25"><a href="#cb6-25" aria-hidden="true" tabindex="-1"></a>    <span class="at">word_2 =</span> pool<span class="sc">$</span>word[combinations[, <span class="dv">2</span>L]],</span>
+<span id="cb6-26"><a href="#cb6-26" aria-hidden="true" tabindex="-1"></a>    <span class="at">cosine_similarity =</span> similarities[combinations],</span>
+<span id="cb6-27"><a href="#cb6-27" aria-hidden="true" tabindex="-1"></a>    <span class="at">stringsAsFactors =</span> <span class="cn">FALSE</span></span>
+<span id="cb6-28"><a href="#cb6-28" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb6-29"><a href="#cb6-29" aria-hidden="true" tabindex="-1"></a>  <span class="fu">stopifnot</span>(<span class="fu">nrow</span>(result) <span class="sc">==</span> <span class="fu">choose</span>(<span class="fu">nrow</span>(pool), <span class="dv">2</span>L))</span>
+<span id="cb6-30"><a href="#cb6-30" aria-hidden="true" tabindex="-1"></a>  result <span class="ot">&lt;-</span> result[<span class="fu">order</span>(<span class="sc">-</span>result<span class="sc">$</span>cosine_similarity,</span>
+<span id="cb6-31"><a href="#cb6-31" aria-hidden="true" tabindex="-1"></a>                         result<span class="sc">$</span>word_1_id, result<span class="sc">$</span>word_2_id), ]</span>
+<span id="cb6-32"><a href="#cb6-32" aria-hidden="true" tabindex="-1"></a>  <span class="fu">rownames</span>(result) <span class="ot">&lt;-</span> <span class="cn">NULL</span></span>
+<span id="cb6-33"><a href="#cb6-33" aria-hidden="true" tabindex="-1"></a>  result</span>
+<span id="cb6-34"><a href="#cb6-34" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 </section>
 <section id="run-analyses" class="level1">
 <h1>Run analyses</h1>
 <p>Here, we define a function to run the analysis. It reads the word vectors, calculates pairwise cosine similarities, and saves the results to an output directory. The function also ensures that the R session is using a UTF-8 locale to handle accented words correctly.</p>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>run_analysis <span class="ot">&lt;-</span> <span class="cf">function</span>(model_file, output_dir, <span class="at">pool =</span> word_pool,</span>
-<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>                         <span class="at">chunk_size =</span> SETTINGS<span class="sc">$</span>chunk_size) {</span>
-<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Older/non-UTF-8 sessions can write literal &quot;&lt;U+...&gt;&quot; escapes into a CSV.</span></span>
-<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Use a UTF-8 character locale for this run, then restore the user&#39;s locale.</span></span>
-<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (<span class="sc">!</span><span class="fu">isTRUE</span>(<span class="fu">l10n_info</span>()[[<span class="st">&quot;UTF-8&quot;</span>]])) {</span>
-<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>    previous_locale <span class="ot">&lt;-</span> <span class="fu">Sys.getlocale</span>(<span class="st">&quot;LC_CTYPE&quot;</span>)</span>
-<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">on.exit</span>(<span class="fu">suppressWarnings</span>(<span class="fu">Sys.setlocale</span>(<span class="st">&quot;LC_CTYPE&quot;</span>, previous_locale)),</span>
-<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>            <span class="at">add =</span> <span class="cn">TRUE</span>)</span>
-<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a>    utf8_locale <span class="ot">&lt;-</span> <span class="cf">if</span> (.Platform<span class="sc">$</span>OS.type <span class="sc">==</span> <span class="st">&quot;windows&quot;</span>) {</span>
-<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a>      <span class="st">&quot;English_United States.utf8&quot;</span></span>
-<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a>    } <span class="cf">else</span> {</span>
-<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a>      <span class="st">&quot;C.UTF-8&quot;</span></span>
-<span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a>    }</span>
-<span id="cb7-14"><a href="#cb7-14" aria-hidden="true" tabindex="-1"></a>    <span class="fu">suppressWarnings</span>(<span class="fu">Sys.setlocale</span>(<span class="st">&quot;LC_CTYPE&quot;</span>, utf8_locale))</span>
-<span id="cb7-15"><a href="#cb7-15" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> (<span class="sc">!</span><span class="fu">isTRUE</span>(<span class="fu">l10n_info</span>()[[<span class="st">&quot;UTF-8&quot;</span>]])) {</span>
-<span id="cb7-16"><a href="#cb7-16" aria-hidden="true" tabindex="-1"></a>      <span class="fu">stop</span>(<span class="st">&quot;A UTF-8-capable R session is required to export accented words.&quot;</span>)</span>
-<span id="cb7-17"><a href="#cb7-17" aria-hidden="true" tabindex="-1"></a>    }</span>
-<span id="cb7-18"><a href="#cb7-18" aria-hidden="true" tabindex="-1"></a>  }</span>
-<span id="cb7-19"><a href="#cb7-19" aria-hidden="true" tabindex="-1"></a>  <span class="fu">validate_pool</span>(pool)</span>
-<span id="cb7-20"><a href="#cb7-20" aria-hidden="true" tabindex="-1"></a>  <span class="fu">message</span>(<span class="st">&quot;Words: &quot;</span>, <span class="fu">nrow</span>(pool), <span class="st">&quot;; combinations: &quot;</span>, <span class="fu">choose</span>(<span class="fu">nrow</span>(pool), <span class="dv">2</span>L))</span>
-<span id="cb7-21"><a href="#cb7-21" aria-hidden="true" tabindex="-1"></a>  <span class="fu">message</span>(<span class="st">&quot;Reading word vectors. The full model is not loaded into memory.&quot;</span>)</span>
-<span id="cb7-22"><a href="#cb7-22" aria-hidden="true" tabindex="-1"></a>  model <span class="ot">&lt;-</span> <span class="fu">read_selected_vectors</span>(model_file, pool<span class="sc">$</span>word, chunk_size)</span>
-<span id="cb7-23"><a href="#cb7-23" aria-hidden="true" tabindex="-1"></a>  pairs <span class="ot">&lt;-</span> <span class="fu">calculate_all_pairs</span>(model<span class="sc">$</span>vectors, pool)</span>
-<span id="cb7-24"><a href="#cb7-24" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb7-25"><a href="#cb7-25" aria-hidden="true" tabindex="-1"></a>  <span class="co"># A new run directory prevents previous results from being overwritten.</span></span>
-<span id="cb7-26"><a href="#cb7-26" aria-hidden="true" tabindex="-1"></a>  <span class="fu">dir.create</span>(output_dir, <span class="at">recursive =</span> <span class="cn">TRUE</span>, <span class="at">showWarnings =</span> <span class="cn">FALSE</span>)</span>
-<span id="cb7-27"><a href="#cb7-27" aria-hidden="true" tabindex="-1"></a>  run_dir <span class="ot">&lt;-</span> <span class="fu">tempfile</span>(</span>
-<span id="cb7-28"><a href="#cb7-28" aria-hidden="true" tabindex="-1"></a>    <span class="at">pattern =</span> <span class="fu">paste0</span>(<span class="st">&quot;run_&quot;</span>, <span class="fu">format</span>(<span class="fu">Sys.time</span>(), <span class="st">&quot;%Y%m%d_%H%M%S&quot;</span>), <span class="st">&quot;_&quot;</span>),</span>
-<span id="cb7-29"><a href="#cb7-29" aria-hidden="true" tabindex="-1"></a>    <span class="at">tmpdir =</span> output_dir</span>
-<span id="cb7-30"><a href="#cb7-30" aria-hidden="true" tabindex="-1"></a>  )</span>
-<span id="cb7-31"><a href="#cb7-31" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (<span class="sc">!</span><span class="fu">dir.create</span>(run_dir)) <span class="fu">stop</span>(<span class="st">&quot;Could not create the results directory.&quot;</span>)</span>
-<span id="cb7-32"><a href="#cb7-32" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb7-33"><a href="#cb7-33" aria-hidden="true" tabindex="-1"></a>  <span class="fu">write.csv</span>(pool, <span class="fu">file.path</span>(run_dir, <span class="st">&quot;word_pool.csv&quot;</span>),</span>
-<span id="cb7-34"><a href="#cb7-34" aria-hidden="true" tabindex="-1"></a>            <span class="at">row.names =</span> <span class="cn">FALSE</span>, <span class="at">fileEncoding =</span> <span class="st">&quot;UTF-8&quot;</span>)</span>
-<span id="cb7-35"><a href="#cb7-35" aria-hidden="true" tabindex="-1"></a>  <span class="fu">write.csv</span>(pairs, <span class="fu">file.path</span>(run_dir, <span class="st">&quot;all_pair_cosines.csv&quot;</span>),</span>
-<span id="cb7-36"><a href="#cb7-36" aria-hidden="true" tabindex="-1"></a>            <span class="at">row.names =</span> <span class="cn">FALSE</span>, <span class="at">fileEncoding =</span> <span class="st">&quot;UTF-8&quot;</span>)</span>
-<span id="cb7-37"><a href="#cb7-37" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb7-38"><a href="#cb7-38" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Preserve the actual vectors used, not just their derived similarities.</span></span>
-<span id="cb7-39"><a href="#cb7-39" aria-hidden="true" tabindex="-1"></a>  <span class="fu">saveRDS</span>(model<span class="sc">$</span>vectors, <span class="fu">file.path</span>(run_dir, <span class="st">&quot;selected_word_vectors.rds&quot;</span>))</span>
-<span id="cb7-40"><a href="#cb7-40" aria-hidden="true" tabindex="-1"></a>  <span class="fu">writeLines</span>(<span class="fu">c</span>(</span>
-<span id="cb7-41"><a href="#cb7-41" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;Model intended by this script: fastText cc.hu.300, Common Crawl + Wikipedia&quot;</span>,</span>
-<span id="cb7-42"><a href="#cb7-42" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;Source: https://fasttext.cc/docs/en/crawl-vectors.html&quot;</span>,</span>
-<span id="cb7-43"><a href="#cb7-43" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;Download: https://dl.fbaipublicfiles.com/fasttext/vectors-crawl/cc.hu.300.vec.gz&quot;</span>,</span>
-<span id="cb7-44"><a href="#cb7-44" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;License: CC BY-SA 3.0&quot;</span>,</span>
-<span id="cb7-45"><a href="#cb7-45" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;Citation: Grave et al. (2018), Learning Word Vectors for 157 Languages, LREC.&quot;</span>,</span>
-<span id="cb7-46"><a href="#cb7-46" aria-hidden="true" tabindex="-1"></a>    <span class="fu">paste</span>(<span class="st">&quot;Actual local model path:&quot;</span>, <span class="fu">normalizePath</span>(model_file, <span class="at">winslash =</span> <span class="st">&quot;/&quot;</span>)),</span>
-<span id="cb7-47"><a href="#cb7-47" aria-hidden="true" tabindex="-1"></a>    <span class="fu">paste</span>(<span class="st">&quot;Model file size (bytes):&quot;</span>, <span class="fu">file.info</span>(model_file)<span class="sc">$</span>size),</span>
-<span id="cb7-48"><a href="#cb7-48" aria-hidden="true" tabindex="-1"></a>    <span class="fu">paste</span>(<span class="st">&quot;Dimensions read from file:&quot;</span>, model<span class="sc">$</span>dimensions),</span>
-<span id="cb7-49"><a href="#cb7-49" aria-hidden="true" tabindex="-1"></a>    <span class="fu">paste</span>(<span class="st">&quot;Vocabulary size in header:&quot;</span>, model<span class="sc">$</span>vocabulary_size),</span>
-<span id="cb7-50"><a href="#cb7-50" aria-hidden="true" tabindex="-1"></a>    <span class="fu">paste</span>(<span class="st">&quot;Run time UTC:&quot;</span>, <span class="fu">format</span>(<span class="fu">Sys.time</span>(), <span class="at">tz =</span> <span class="st">&quot;UTC&quot;</span>, <span class="at">usetz =</span> <span class="cn">TRUE</span>)),</span>
-<span id="cb7-51"><a href="#cb7-51" aria-hidden="true" tabindex="-1"></a>    <span class="fu">paste</span>(<span class="st">&quot;Number of words:&quot;</span>, <span class="fu">nrow</span>(pool)),</span>
-<span id="cb7-52"><a href="#cb7-52" aria-hidden="true" tabindex="-1"></a>    <span class="fu">paste</span>(<span class="st">&quot;Number of unordered pairs:&quot;</span>, <span class="fu">nrow</span>(pairs)),</span>
-<span id="cb7-53"><a href="#cb7-53" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;Measure: cosine similarity, not cosine distance.&quot;</span>,</span>
-<span id="cb7-54"><a href="#cb7-54" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;No cosine filtering, rounding, pairing assignment, or random sampling applied.&quot;</span>,</span>
-<span id="cb7-55"><a href="#cb7-55" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;word_1/word_2 identify an unordered pair, not assigned cue/target roles.&quot;</span>,</span>
-<span id="cb7-56"><a href="#cb7-56" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;Original 40 words: user-provided materials.&quot;</span>,</span>
-<span id="cb7-57"><a href="#cb7-57" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;Additional 40 words: OpenAI AI assistant&#39;s qualitative suggestions.&quot;</span>,</span>
-<span id="cb7-58"><a href="#cb7-58" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;No normative matching or empirical validation of the word pool.&quot;</span>,</span>
-<span id="cb7-59"><a href="#cb7-59" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;These are not the original SPAML stimuli or SPAML cosine values.&quot;</span>,</span>
-<span id="cb7-60"><a href="#cb7-60" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;If another model was used, replace the intended-model attribution above.&quot;</span>,</span>
-<span id="cb7-61"><a href="#cb7-61" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;&quot;</span>,</span>
-<span id="cb7-62"><a href="#cb7-62" aria-hidden="true" tabindex="-1"></a>    <span class="fu">capture.output</span>(<span class="fu">sessionInfo</span>())</span>
-<span id="cb7-63"><a href="#cb7-63" aria-hidden="true" tabindex="-1"></a>  ), <span class="fu">file.path</span>(run_dir, <span class="st">&quot;analysis_info.txt&quot;</span>), <span class="at">useBytes =</span> <span class="cn">TRUE</span>)</span>
-<span id="cb7-64"><a href="#cb7-64" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb7-65"><a href="#cb7-65" aria-hidden="true" tabindex="-1"></a>  <span class="fu">message</span>(<span class="st">&quot;Complete. Output folder: &quot;</span>, <span class="fu">normalizePath</span>(run_dir, <span class="at">winslash =</span> <span class="st">&quot;/&quot;</span>))</span>
-<span id="cb7-66"><a href="#cb7-66" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span>(utils<span class="sc">::</span><span class="fu">head</span>(pairs, <span class="dv">10</span>L), <span class="at">row.names =</span> <span class="cn">FALSE</span>)</span>
-<span id="cb7-67"><a href="#cb7-67" aria-hidden="true" tabindex="-1"></a>  <span class="fu">invisible</span>(<span class="fu">list</span>(<span class="at">pairs =</span> pairs, <span class="at">words =</span> pool, <span class="at">vectors =</span> model<span class="sc">$</span>vectors,</span>
-<span id="cb7-68"><a href="#cb7-68" aria-hidden="true" tabindex="-1"></a>                 <span class="at">output_dir =</span> <span class="fu">normalizePath</span>(run_dir, <span class="at">winslash =</span> <span class="st">&quot;/&quot;</span>)))</span>
-<span id="cb7-69"><a href="#cb7-69" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Run the analysis</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>run_analysis <span class="ot">&lt;-</span> <span class="cf">function</span>(model_file, output_dir, <span class="at">pool =</span> word_pool,</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>                         <span class="at">chunk_size =</span> SETTINGS<span class="sc">$</span>chunk_size) {</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Older/non-UTF-8 sessions can write literal &quot;&lt;U+...&gt;&quot; escapes into a CSV.</span></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Use a UTF-8 character locale for this run, then restore the user&#39;s locale.</span></span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (<span class="sc">!</span><span class="fu">isTRUE</span>(<span class="fu">l10n_info</span>()[[<span class="st">&quot;UTF-8&quot;</span>]])) {</span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>    previous_locale <span class="ot">&lt;-</span> <span class="fu">Sys.getlocale</span>(<span class="st">&quot;LC_CTYPE&quot;</span>)</span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>    <span class="fu">on.exit</span>(<span class="fu">suppressWarnings</span>(<span class="fu">Sys.setlocale</span>(<span class="st">&quot;LC_CTYPE&quot;</span>, previous_locale)),</span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a>            <span class="at">add =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a>    utf8_locale <span class="ot">&lt;-</span> <span class="cf">if</span> (.Platform<span class="sc">$</span>OS.type <span class="sc">==</span> <span class="st">&quot;windows&quot;</span>) {</span>
+<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a>      <span class="st">&quot;English_United States.utf8&quot;</span></span>
+<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a>    } <span class="cf">else</span> {</span>
+<span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a>      <span class="st">&quot;C.UTF-8&quot;</span></span>
+<span id="cb7-14"><a href="#cb7-14" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb7-15"><a href="#cb7-15" aria-hidden="true" tabindex="-1"></a>    <span class="fu">suppressWarnings</span>(<span class="fu">Sys.setlocale</span>(<span class="st">&quot;LC_CTYPE&quot;</span>, utf8_locale))</span>
+<span id="cb7-16"><a href="#cb7-16" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> (<span class="sc">!</span><span class="fu">isTRUE</span>(<span class="fu">l10n_info</span>()[[<span class="st">&quot;UTF-8&quot;</span>]])) {</span>
+<span id="cb7-17"><a href="#cb7-17" aria-hidden="true" tabindex="-1"></a>      <span class="fu">stop</span>(<span class="st">&quot;A UTF-8-capable R session is required to export accented words.&quot;</span>)</span>
+<span id="cb7-18"><a href="#cb7-18" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb7-19"><a href="#cb7-19" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb7-20"><a href="#cb7-20" aria-hidden="true" tabindex="-1"></a>  <span class="fu">validate_pool</span>(pool)</span>
+<span id="cb7-21"><a href="#cb7-21" aria-hidden="true" tabindex="-1"></a>  <span class="fu">message</span>(<span class="st">&quot;Words: &quot;</span>, <span class="fu">nrow</span>(pool), <span class="st">&quot;; combinations: &quot;</span>, <span class="fu">choose</span>(<span class="fu">nrow</span>(pool), <span class="dv">2</span>L))</span>
+<span id="cb7-22"><a href="#cb7-22" aria-hidden="true" tabindex="-1"></a>  <span class="fu">message</span>(<span class="st">&quot;Reading word vectors. The full model is not loaded into memory.&quot;</span>)</span>
+<span id="cb7-23"><a href="#cb7-23" aria-hidden="true" tabindex="-1"></a>  model <span class="ot">&lt;-</span> <span class="fu">read_selected_vectors</span>(model_file, pool<span class="sc">$</span>word, chunk_size)</span>
+<span id="cb7-24"><a href="#cb7-24" aria-hidden="true" tabindex="-1"></a>  pairs <span class="ot">&lt;-</span> <span class="fu">calculate_all_pairs</span>(model<span class="sc">$</span>vectors, pool)</span>
+<span id="cb7-25"><a href="#cb7-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-26"><a href="#cb7-26" aria-hidden="true" tabindex="-1"></a>  <span class="co"># A new run directory prevents previous results from being overwritten.</span></span>
+<span id="cb7-27"><a href="#cb7-27" aria-hidden="true" tabindex="-1"></a>  <span class="fu">dir.create</span>(output_dir, <span class="at">recursive =</span> <span class="cn">TRUE</span>, <span class="at">showWarnings =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb7-28"><a href="#cb7-28" aria-hidden="true" tabindex="-1"></a>  run_dir <span class="ot">&lt;-</span> <span class="fu">tempfile</span>(</span>
+<span id="cb7-29"><a href="#cb7-29" aria-hidden="true" tabindex="-1"></a>    <span class="at">pattern =</span> <span class="fu">paste0</span>(<span class="st">&quot;run_&quot;</span>, <span class="fu">format</span>(<span class="fu">Sys.time</span>(), <span class="st">&quot;%Y%m%d_%H%M%S&quot;</span>), <span class="st">&quot;_&quot;</span>),</span>
+<span id="cb7-30"><a href="#cb7-30" aria-hidden="true" tabindex="-1"></a>    <span class="at">tmpdir =</span> output_dir</span>
+<span id="cb7-31"><a href="#cb7-31" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb7-32"><a href="#cb7-32" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (<span class="sc">!</span><span class="fu">dir.create</span>(run_dir)) <span class="fu">stop</span>(<span class="st">&quot;Could not create the results directory.&quot;</span>)</span>
+<span id="cb7-33"><a href="#cb7-33" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-34"><a href="#cb7-34" aria-hidden="true" tabindex="-1"></a>  <span class="fu">write.csv</span>(pool, <span class="fu">file.path</span>(run_dir, <span class="st">&quot;word_pool.csv&quot;</span>),</span>
+<span id="cb7-35"><a href="#cb7-35" aria-hidden="true" tabindex="-1"></a>            <span class="at">row.names =</span> <span class="cn">FALSE</span>, <span class="at">fileEncoding =</span> <span class="st">&quot;UTF-8&quot;</span>)</span>
+<span id="cb7-36"><a href="#cb7-36" aria-hidden="true" tabindex="-1"></a>  <span class="fu">write.csv</span>(pairs, <span class="fu">file.path</span>(run_dir, <span class="st">&quot;all_pair_cosines.csv&quot;</span>),</span>
+<span id="cb7-37"><a href="#cb7-37" aria-hidden="true" tabindex="-1"></a>            <span class="at">row.names =</span> <span class="cn">FALSE</span>, <span class="at">fileEncoding =</span> <span class="st">&quot;UTF-8&quot;</span>)</span>
+<span id="cb7-38"><a href="#cb7-38" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-39"><a href="#cb7-39" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Preserve the actual vectors used, not just their derived similarities.</span></span>
+<span id="cb7-40"><a href="#cb7-40" aria-hidden="true" tabindex="-1"></a>  <span class="fu">saveRDS</span>(model<span class="sc">$</span>vectors, <span class="fu">file.path</span>(run_dir, <span class="st">&quot;selected_word_vectors.rds&quot;</span>))</span>
+<span id="cb7-41"><a href="#cb7-41" aria-hidden="true" tabindex="-1"></a>  <span class="fu">writeLines</span>(<span class="fu">c</span>(</span>
+<span id="cb7-42"><a href="#cb7-42" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;Model intended by this script: fastText cc.hu.300, Common Crawl + Wikipedia&quot;</span>,</span>
+<span id="cb7-43"><a href="#cb7-43" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;Source: https://fasttext.cc/docs/en/crawl-vectors.html&quot;</span>,</span>
+<span id="cb7-44"><a href="#cb7-44" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;Download: https://dl.fbaipublicfiles.com/fasttext/vectors-crawl/cc.hu.300.vec.gz&quot;</span>,</span>
+<span id="cb7-45"><a href="#cb7-45" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;License: CC BY-SA 3.0&quot;</span>,</span>
+<span id="cb7-46"><a href="#cb7-46" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;Citation: Grave et al. (2018), Learning Word Vectors for 157 Languages, LREC.&quot;</span>,</span>
+<span id="cb7-47"><a href="#cb7-47" aria-hidden="true" tabindex="-1"></a>    <span class="fu">paste</span>(<span class="st">&quot;Actual local model path:&quot;</span>, <span class="fu">normalizePath</span>(model_file, <span class="at">winslash =</span> <span class="st">&quot;/&quot;</span>)),</span>
+<span id="cb7-48"><a href="#cb7-48" aria-hidden="true" tabindex="-1"></a>    <span class="fu">paste</span>(<span class="st">&quot;Model file size (bytes):&quot;</span>, <span class="fu">file.info</span>(model_file)<span class="sc">$</span>size),</span>
+<span id="cb7-49"><a href="#cb7-49" aria-hidden="true" tabindex="-1"></a>    <span class="fu">paste</span>(<span class="st">&quot;Dimensions read from file:&quot;</span>, model<span class="sc">$</span>dimensions),</span>
+<span id="cb7-50"><a href="#cb7-50" aria-hidden="true" tabindex="-1"></a>    <span class="fu">paste</span>(<span class="st">&quot;Vocabulary size in header:&quot;</span>, model<span class="sc">$</span>vocabulary_size),</span>
+<span id="cb7-51"><a href="#cb7-51" aria-hidden="true" tabindex="-1"></a>    <span class="fu">paste</span>(<span class="st">&quot;Run time UTC:&quot;</span>, <span class="fu">format</span>(<span class="fu">Sys.time</span>(), <span class="at">tz =</span> <span class="st">&quot;UTC&quot;</span>, <span class="at">usetz =</span> <span class="cn">TRUE</span>)),</span>
+<span id="cb7-52"><a href="#cb7-52" aria-hidden="true" tabindex="-1"></a>    <span class="fu">paste</span>(<span class="st">&quot;Number of words:&quot;</span>, <span class="fu">nrow</span>(pool)),</span>
+<span id="cb7-53"><a href="#cb7-53" aria-hidden="true" tabindex="-1"></a>    <span class="fu">paste</span>(<span class="st">&quot;Number of unordered pairs:&quot;</span>, <span class="fu">nrow</span>(pairs)),</span>
+<span id="cb7-54"><a href="#cb7-54" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;Measure: cosine similarity, not cosine distance.&quot;</span>,</span>
+<span id="cb7-55"><a href="#cb7-55" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;No cosine filtering, rounding, pairing assignment, or random sampling applied.&quot;</span>,</span>
+<span id="cb7-56"><a href="#cb7-56" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;word_1/word_2 identify an unordered pair, not assigned cue/target roles.&quot;</span>,</span>
+<span id="cb7-57"><a href="#cb7-57" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;Original 40 words: user-provided materials.&quot;</span>,</span>
+<span id="cb7-58"><a href="#cb7-58" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;Additional 40 words: OpenAI AI assistant&#39;s qualitative suggestions.&quot;</span>,</span>
+<span id="cb7-59"><a href="#cb7-59" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;No normative matching or empirical validation of the word pool.&quot;</span>,</span>
+<span id="cb7-60"><a href="#cb7-60" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;These are not the original SPAML stimuli or SPAML cosine values.&quot;</span>,</span>
+<span id="cb7-61"><a href="#cb7-61" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;If another model was used, replace the intended-model attribution above.&quot;</span>,</span>
+<span id="cb7-62"><a href="#cb7-62" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;&quot;</span>,</span>
+<span id="cb7-63"><a href="#cb7-63" aria-hidden="true" tabindex="-1"></a>    <span class="fu">capture.output</span>(<span class="fu">sessionInfo</span>())</span>
+<span id="cb7-64"><a href="#cb7-64" aria-hidden="true" tabindex="-1"></a>  ), <span class="fu">file.path</span>(run_dir, <span class="st">&quot;analysis_info.txt&quot;</span>), <span class="at">useBytes =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb7-65"><a href="#cb7-65" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-66"><a href="#cb7-66" aria-hidden="true" tabindex="-1"></a>  <span class="fu">message</span>(<span class="st">&quot;Complete. Output folder: &quot;</span>, <span class="fu">normalizePath</span>(run_dir, <span class="at">winslash =</span> <span class="st">&quot;/&quot;</span>))</span>
+<span id="cb7-67"><a href="#cb7-67" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span>(utils<span class="sc">::</span><span class="fu">head</span>(pairs, <span class="dv">10</span>L), <span class="at">row.names =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb7-68"><a href="#cb7-68" aria-hidden="true" tabindex="-1"></a>  <span class="fu">invisible</span>(<span class="fu">list</span>(<span class="at">pairs =</span> pairs, <span class="at">words =</span> pool, <span class="at">vectors =</span> model<span class="sc">$</span>vectors,</span>
+<span id="cb7-69"><a href="#cb7-69" aria-hidden="true" tabindex="-1"></a>                 <span class="at">output_dir =</span> <span class="fu">normalizePath</span>(run_dir, <span class="at">winslash =</span> <span class="st">&quot;/&quot;</span>)))</span>
+<span id="cb7-70"><a href="#cb7-70" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 </section>
 <section id="save-the-results-of-the-analysis-and-filter-for-candidate-pairs-with-cosine-similarity-between-0.15-and-0.30." class="level1">
@@ -2581,7 +2589,7 @@ text-align: justify;
 <pre><code>Scanned 2e+05 rows; found 98/100 words.</code></pre>
 </div>
 <div class="cell-output cell-output-stderr">
-<pre><code>Complete. Output folder: C:/Users/Acer/Desktop/SULI4/PhD/wordpair_memory/cosine_counter/wordpair_cosine_results/run_20261020_140515_509013bd7c71</code></pre>
+<pre><code>Complete. Output folder: C:/Users/Acer/Desktop/SULI4/PhD/wordpair_memory/cosine_counter/wordpair_cosine_results/run_20261020_141735_c7c3a031996</code></pre>
 </div>
 <div class="cell-output cell-output-stdout">
 <pre><code>   combination_id word_1_id word_1 word_2_id     word_2 cosine_similarity

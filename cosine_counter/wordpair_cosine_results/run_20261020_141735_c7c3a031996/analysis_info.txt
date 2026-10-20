@@ -7,7 +7,7 @@ Actual local model path: C:/Users/Acer/Downloads/cc.hu.300.vec.gz
 Model file size (bytes): 1257313518
 Dimensions read from file: 300
 Vocabulary size in header: 2e+06
-Run time UTC: 2026-10-20 12:05:15 UTC
+Run time UTC: 2026-10-20 12:17:36 UTC
 Number of words: 100
 Number of unordered pairs: 4950
 Measure: cosine similarity, not cosine distance.
