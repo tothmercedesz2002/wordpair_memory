@@ -1,0 +1,364 @@
+---
+title: "Word-pair candidates - all pairwise cosine similarities"
+author: "Mercédesz Tóth"
+format:
+  html:
+    embed-resources: true
+    toc: true
+    toc-location: left
+    toc-depth: 3
+    toc-floating: true
+editor_options: 
+  chunk_output_type: console
+---
+
+<style>
+body {
+  text-align: justify;
+}
+</style>
+---
+# Instructions 
+
+1. Save/open this script as UTF-8. Requires only base R.
+
+2. Download the Hungarian TEXT vectors (cc.hu.300.vec.gz):
+https://dl.fbaipublicfiles.com/fasttext/vectors-crawl/cc.hu.300.vec.gz
+
+3. Set SETTINGS$model_file below. No extraction is necessary.
+
+4. Run the whole script with RStudio's Source button.
+
+# Information
+
+Model: fastText, Hungarian Common Crawl + Wikipedia, 300 dimensions.
+Documentation: https://fasttext.cc/docs/en/crawl-vectors.html
+Citation: Grave, Bojanowski, Gupta, Joulin, & Mikolov (2018).
+Learning Word Vectors for 157 Languages. LREC.
+Model license: CC BY-SA 3.0.
+
+The words here are a project-specific, non-normed candidate pool. The words were AI generated or added randomly. Familiarity/concreteness/neutrality were qualitative selection intentions, not measured or matched properties. No cosine values are invented.
+
+# Settings
+
+```{r}
+SETTINGS <- list(
+  # change this to your path
+  model_file = "C:/Users/Acer/Downloads/cc.hu.300.vec.gz", 
+  # output directory for the results (will be created if it doesn't exist)
+  output_dir = file.path(getwd(), "wordpair_cosine_results"),
+  # number of word pairs to process in one chunk (to avoid memory issues)
+  chunk_size = 5000L 
+)
+```
+
+# Words
+
+```{r}
+# Original 24 words
+original_words <- c(
+  "ablak", "rigó", "szőnyeg", "homok", "doboz", "tulipán", "kosár", 
+  "levél", "függöny", "gyertya", "párna", "vonat", "zokni", "bárány", 
+  "szék", "hegedű", "kanál", "hó", "kulcs", "bőrönd", "üveg", "szőlő", "kefe", "hold"
+)
+
+# 76 more concrete-noun candidates
+additional_words <- c(
+  "asztal", "óra", "seprű", "szalag", "gomb", "sátor", "csésze", "kapu", "kalap", "kancsó", 
+  "zsebkendő", "pad", "villa", "tükör", "könyv", "táska","csengő", "ecset", "hajó", "kesztyű", 
+  "szekrény","horgászbot", "patak", "kavics", "alma", "fenyő", "rét", "tányér", "málna", "tigris", 
+  "béka", "szivárvány", "búza", "mókus", "domb", "pillangó", "tó","tölgy", "körte", "méh", 
+  "napraforgó", "létra", "hegy", "fodrász", "iskola", "térkép", "torna", "deszka", "újság", "akadály",
+  "villám", "tűz", "acél", "zene", "kert", "kút", "város", "csarnok", "krémleves", "matrac",
+  "borotva", "család", "fotel", "lepény", "játék", "torta", "függvény", "átlag", "nagyító", "frizbi",
+  "lámpa", "parancsnok", "turbina", "pince", "szemüveg", "laboratórium"
+)
+
+# 4 practice words
+practice_words <- c("bögre", "felhő", "kabát", "dió")
+```
+
+# Word pool
+
+```{r}
+word_pool <- data.frame(
+  # Create a unique word ID for each word
+  word_id = sprintf(
+    "word_%02d", seq_along(c(original_words, additional_words))
+  ),
+  # Combine the original and additional words into a single vector
+  word = c(original_words, additional_words),
+  # Create a column indicating the origin of each word
+  origin = c(
+    rep("original", length(original_words)),
+    rep("additional_ai_proposed", length(additional_words))
+  ),
+  # Prevent automatic conversion of strings to factors
+  stringsAsFactors = FALSE 
+)
+```
+
+# Validation of the word pool
+
+Here, we define a function to validate the word pool. The function checks for the following conditions: 
+- There must be at least two non-empty, single-word entries.
+- There should be no duplicate words or word IDs.
+- There should be no overlap with the practice words.
+
+```{r}
+validate_pool <- function(pool, excluded_words = practice_words) {    # exclude practice words
+  words <- enc2utf8(pool$word)                                        # ensure UTF-8 encoding
+  if (length(words) < 2L || anyNA(words) ||                           # if less than 2 words/any NA values
+      any(!nzchar(words)) || any(grepl("[[:space:]]", words))) {      # if any words are empty/contain spaces
+    stop("Use at least two nonempty, single-word entries.")        
+  }
+  if (anyDuplicated(words)) {                                         # if there are any duplicated words
+    stop("Duplicate words: ", paste(unique(words[duplicated(words)]), 
+                                   collapse = ", "))
+  }
+  if (anyDuplicated(pool$word_id)) stop("Word IDs must be unique.")
+  overlap <- intersect(words, excluded_words)
+  if (length(overlap)) {
+    stop("Practice-word overlap: ", paste(overlap, collapse = ", "))   # if  overlap with practice words
+  }
+  invisible(TRUE)
+}
+```
+
+# Stream the .vec/.vec.gz file in chunks and retain only requested vectors.
+
+Unlike loading the entire model, this does not require its full size in RAM. Text vectors cannot generate vectors for out-of-vocabulary words.
+
+```{r}
+read_selected_vectors <- function(model_file, words, chunk_size = 5000L) {
+  if (!file.exists(model_file)) {
+    stop(
+      "Model file not found: ", model_file,
+      "\nDownload cc.hu.300.vec.gz and update SETTINGS$model_file.",
+      "\nUse the TEXT (.vec.gz) download, not the binary (.bin.gz) model."
+    )
+  }
+  if (length(chunk_size) != 1L || is.na(chunk_size) ||
+      chunk_size < 1L || chunk_size != as.integer(chunk_size)) {
+    stop("chunk_size must be a positive integer.")
+  }
+
+  # Mark input as UTF-8 in readLines instead of converting it to the native
+  # Windows locale, which may not be able to represent Hungarian accents.
+  connection <- if (grepl("\\.gz$", model_file, ignore.case = TRUE)) {
+    gzfile(model_file, open = "rt")
+  } else {
+    file(model_file, open = "rt")
+  }
+  on.exit(close(connection), add = TRUE)
+
+  first_line <- readLines(connection, n = 1L, warn = FALSE, encoding = "UTF-8")
+  if (!length(first_line)) stop("The model file is empty.")
+  first_line <- sub("^\ufeff", "", first_line)
+  header <- strsplit(trimws(first_line), "[[:space:]]+")[[1L]]
+  if (length(header) != 2L || !all(grepl("^[0-9]+$", header))) {
+    stop("Expected a text-vector header: vocabulary_size dimensions.")
+  }
+  vocabulary_size <- as.numeric(header[1L])
+  dimensions <- as.integer(header[2L])
+  if (!is.finite(vocabulary_size) || vocabulary_size < 1 ||
+      is.na(dimensions) || dimensions < 1L) {
+    stop("Invalid model dimensions or vocabulary size.")
+  }
+
+  vectors <- matrix(
+    NA_real_, nrow = length(words), ncol = dimensions,
+    dimnames = list(words, paste0("dim_", seq_len(dimensions)))
+  )
+  found <- rep(FALSE, length(words))
+  scanned <- 0
+  next_progress <- 100000
+
+  repeat {
+    lines <- readLines(connection, n = chunk_size, warn = FALSE,
+                       encoding = "UTF-8")
+    if (!length(lines)) break
+    scanned <- scanned + length(lines)
+
+    # Identify the first token without splitting every full vector.
+    separators <- regexpr("[ \t]", lines)
+    tokens <- substring(lines, 1L, pmax(0L, separators - 1L))
+    indices <- match(tokens, words)
+    matches <- which(!is.na(indices))
+
+    for (line_number in matches) {
+      word_number <- indices[line_number]
+      if (found[word_number]) next
+      vector_text <- substring(lines[line_number],
+                               separators[line_number] + 1L)
+      values <- scan(text = vector_text, what = double(), quiet = TRUE)
+      if (length(values) != dimensions || any(!is.finite(values))) {
+        stop("Invalid vector for word: ", words[word_number])
+      }
+      vectors[word_number, ] <- values
+      found[word_number] <- TRUE
+    }
+
+    if (all(found)) break
+    if (scanned >= next_progress) {
+      message("Scanned ", scanned, " rows; found ",
+              sum(found), "/", length(words), " words.")
+      next_progress <- scanned + 100000
+    }
+  }
+
+  if (!all(found)) {
+    stop(
+      "Missing words in the model: ",
+      paste(words[!found], collapse = ", "),
+      "\nNo scores were substituted and no words were silently dropped.",
+      "\nCheck spelling, UTF-8 encoding, model choice, and download completeness."
+    )
+  }
+  list(vectors = vectors, vocabulary_size = vocabulary_size,
+       dimensions = dimensions)
+}
+```
+
+
+# Calculating pairwise cosine similarities
+
+Here, we define a function to calculate pairwise cosine similarities for all unordered combinations of words in the pool. The function checks for valid input and computes the cosine similarity using normalized vectors.
+
+```{r}
+calculate_all_pairs <- function(vectors, pool) {
+  validate_pool(pool)
+  if (!identical(rownames(vectors), pool$word)) {
+    stop("The vector rows and word-pool order do not match.")
+  }
+  if (any(!is.finite(vectors))) stop("Non-finite vector values.")
+  norms <- sqrt(rowSums(vectors^2))
+  if (any(!is.finite(norms) | norms == 0)) {
+    stop("Cannot compute cosine for a zero-length or invalid vector.")
+  }
+
+  unit_vectors <- sweep(vectors, 1L, norms, "/")
+  similarities <- tcrossprod(unit_vectors)
+  # Correct only floating-point overshoot at -1/+1.
+  similarities[] <- pmax(-1, pmin(1, similarities))
+
+  # Unordered combinations: A-B once, no B-A duplicate, no A-A comparison.
+  combinations <- t(combn(seq_len(nrow(pool)), 2L))
+  result <- data.frame(
+    combination_id = sprintf("combination_%04d", seq_len(nrow(combinations))),
+    word_1_id = pool$word_id[combinations[, 1L]],
+    word_1 = pool$word[combinations[, 1L]],
+    word_2_id = pool$word_id[combinations[, 2L]],
+    word_2 = pool$word[combinations[, 2L]],
+    cosine_similarity = similarities[combinations],
+    stringsAsFactors = FALSE
+  )
+  stopifnot(nrow(result) == choose(nrow(pool), 2L))
+  result <- result[order(-result$cosine_similarity,
+                         result$word_1_id, result$word_2_id), ]
+  rownames(result) <- NULL
+  result
+}
+```
+
+# Run analyses
+
+Here, we define a function to run the analysis. It reads the word vectors, calculates pairwise cosine similarities, and saves the results to an output directory. The function also ensures that the R session is using a UTF-8 locale to handle accented words correctly.
+
+```{r}
+run_analysis <- function(model_file, output_dir, pool = word_pool,
+                         chunk_size = SETTINGS$chunk_size) {
+  # Older/non-UTF-8 sessions can write literal "<U+...>" escapes into a CSV.
+  # Use a UTF-8 character locale for this run, then restore the user's locale.
+  if (!isTRUE(l10n_info()[["UTF-8"]])) {
+    previous_locale <- Sys.getlocale("LC_CTYPE")
+    on.exit(suppressWarnings(Sys.setlocale("LC_CTYPE", previous_locale)),
+            add = TRUE)
+    utf8_locale <- if (.Platform$OS.type == "windows") {
+      "English_United States.utf8"
+    } else {
+      "C.UTF-8"
+    }
+    suppressWarnings(Sys.setlocale("LC_CTYPE", utf8_locale))
+    if (!isTRUE(l10n_info()[["UTF-8"]])) {
+      stop("A UTF-8-capable R session is required to export accented words.")
+    }
+  }
+  validate_pool(pool)
+  message("Words: ", nrow(pool), "; combinations: ", choose(nrow(pool), 2L))
+  message("Reading word vectors. The full model is not loaded into memory.")
+  model <- read_selected_vectors(model_file, pool$word, chunk_size)
+  pairs <- calculate_all_pairs(model$vectors, pool)
+
+  # A new run directory prevents previous results from being overwritten.
+  dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
+  run_dir <- tempfile(
+    pattern = paste0("run_", format(Sys.time(), "%Y%m%d_%H%M%S"), "_"),
+    tmpdir = output_dir
+  )
+  if (!dir.create(run_dir)) stop("Could not create the results directory.")
+
+  write.csv(pool, file.path(run_dir, "word_pool.csv"),
+            row.names = FALSE, fileEncoding = "UTF-8")
+  write.csv(pairs, file.path(run_dir, "all_pair_cosines.csv"),
+            row.names = FALSE, fileEncoding = "UTF-8")
+
+  # Preserve the actual vectors used, not just their derived similarities.
+  saveRDS(model$vectors, file.path(run_dir, "selected_word_vectors.rds"))
+  writeLines(c(
+    "Model intended by this script: fastText cc.hu.300, Common Crawl + Wikipedia",
+    "Source: https://fasttext.cc/docs/en/crawl-vectors.html",
+    "Download: https://dl.fbaipublicfiles.com/fasttext/vectors-crawl/cc.hu.300.vec.gz",
+    "License: CC BY-SA 3.0",
+    "Citation: Grave et al. (2018), Learning Word Vectors for 157 Languages, LREC.",
+    paste("Actual local model path:", normalizePath(model_file, winslash = "/")),
+    paste("Model file size (bytes):", file.info(model_file)$size),
+    paste("Dimensions read from file:", model$dimensions),
+    paste("Vocabulary size in header:", model$vocabulary_size),
+    paste("Run time UTC:", format(Sys.time(), tz = "UTC", usetz = TRUE)),
+    paste("Number of words:", nrow(pool)),
+    paste("Number of unordered pairs:", nrow(pairs)),
+    "Measure: cosine similarity, not cosine distance.",
+    "No cosine filtering, rounding, pairing assignment, or random sampling applied.",
+    "word_1/word_2 identify an unordered pair, not assigned cue/target roles.",
+    "Original 40 words: user-provided materials.",
+    "Additional 40 words: OpenAI AI assistant's qualitative suggestions.",
+    "No normative matching or empirical validation of the word pool.",
+    "These are not the original SPAML stimuli or SPAML cosine values.",
+    "If another model was used, replace the intended-model attribution above.",
+    "",
+    capture.output(sessionInfo())
+  ), file.path(run_dir, "analysis_info.txt"), useBytes = TRUE)
+
+  message("Complete. Output folder: ", normalizePath(run_dir, winslash = "/"))
+  print(utils::head(pairs, 10L), row.names = FALSE)
+  invisible(list(pairs = pairs, words = pool, vectors = model$vectors,
+                 output_dir = normalizePath(run_dir, winslash = "/")))
+}
+
+```
+
+# Save the results of the analysis and filter for candidate pairs with cosine similarity between 0.15 and 0.30.
+
+```{r}
+results <- run_analysis(SETTINGS$model_file, SETTINGS$output_dir)
+
+candidates <- subset(
+  results$pairs,
+  cosine_similarity >= 0.15 & cosine_similarity <= 0.30
+)
+
+candidates |> knitr::kable(
+  caption = "Candidate word pairs with cosine similarity between 0.15 and 0.30",
+  digits = 3
+)
+```
+
+# Results
+
+Results go to folder `wordpair_cosine_results` in the current working directory. Each run creates a new subfolder with the following files:
+
+- `all_pair_cosines.csv`: all combinations, decreasing cosine similarity
+- `word_pool.csv`: 100 words with IDs and origin labels
+- `selected_word_vectors.rds`: used vectors for the 100 words, in a matrix with rownames
+- `analysis_info.txt`: details of the run, including model path, size, dimensions, and session info
