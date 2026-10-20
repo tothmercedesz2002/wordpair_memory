@@ -130,7 +130,7 @@
 
         // INITIALIZATION
 
-        const EXPERIMENT_VERSION = "WPM_2026-10-19_v1";
+        const EXPERIMENT_VERSION = "WPM_2026-10-20_v1";
         const IS_JATOS = window.location.pathname.includes("/publix/");
 
         let participantId = "";
@@ -156,49 +156,61 @@
             { id: "practice_02", cue: "kabát", target: "dió" }
         ];
 
-        // Fixed pilot pool selected from the Hungarian SPAML materials.
-        // This selection has not yet been validated for cued recall.
+        // Fixed project-specific pilot pool: 50 pairs, 100 distinct words.
+        // Selected using Hungarian fastText cosine similarities in [0.15, 0.30].
+        // Pair-selection seed: 20261020. Pair IDs and cue-target directions
+        // match selected_pairs.csv and remain fixed across participants.
         const mainPairPool = [
-            { id: "pool_01", cue: "állatkert", target: "cirkusz" },
-            { id: "pool_02", cue: "autogram", target: "fotós" },
-            { id: "pool_03", cue: "banán", target: "eper" },
-            { id: "pool_04", cue: "béka", target: "gyík" },
-            { id: "pool_05", cue: "bélyeg", target: "aláírás" },
-            { id: "pool_06", cue: "boríték", target: "csomag" },
-            { id: "pool_07", cue: "cement", target: "műanyag" },
-            { id: "pool_08", cue: "csiga", target: "teknősbéka" },
-            { id: "pool_09", cue: "csirke", target: "pulyka" },
-            { id: "pool_10", cue: "doboz", target: "táska" },
-            { id: "pool_11", cue: "fal", target: "kerítés" },
-            { id: "pool_12", cue: "híd", target: "alagút" },
-            { id: "pool_13", cue: "horgony", target: "vitorla" },
-            { id: "pool_14", cue: "ing", target: "dzseki" },
-            { id: "pool_15", cue: "jegy", target: "útlevél" },
-            { id: "pool_16", cue: "jelvény", target: "egyenruha" },
-            { id: "pool_17", cue: "kabin", target: "fedélzet" },
-            { id: "pool_18", cue: "kamera", target: "mikrofon" },
-            { id: "pool_19", cue: "könyvtár", target: "múzeum" },
-            { id: "pool_20", cue: "kürt", target: "síp" },
-            { id: "pool_21", cue: "lánc", target: "kötél" },
-            { id: "pool_22", cue: "mókus", target: "mosómedve" },
-            { id: "pool_23", cue: "mozi", target: "színház" },
-            { id: "pool_24", cue: "műhely", target: "garázs" },
-            { id: "pool_25", cue: "naptár", target: "menetrend" },
-            { id: "pool_26", cue: "öböl", target: "kikötő" },
-            { id: "pool_27", cue: "pillangó", target: "madár" },
-            { id: "pool_28", cue: "radar", target: "műhold" },
-            { id: "pool_29", cue: "róka", target: "nyúl" },
-            { id: "pool_30", cue: "sár", target: "homok" },
-            { id: "pool_31", cue: "sisak", target: "kalap" },
-            { id: "pool_32", cue: "sivatag", target: "völgy" },
-            { id: "pool_33", cue: "szekrény", target: "fülke" },
-            { id: "pool_34", cue: "szemüveg", target: "sapka" },
-            { id: "pool_35", cue: "szövet", target: "zsebkendő" },
-            { id: "pool_36", cue: "tábor", target: "falu" },
-            { id: "pool_37", cue: "takaró", target: "törülköző" },
-            { id: "pool_38", cue: "távcső", target: "mikroszkóp" },
-            { id: "pool_39", cue: "tej", target: "gyümölcslé" },
-            { id: "pool_40", cue: "űrhajós", target: "pilóta" }
+            { id: "main_01", cue: "málna", target: "zsebkendő" },
+            { id: "main_02", cue: "kapu", target: "asztal" },
+            { id: "main_03", cue: "horgászbot", target: "kesztyű" },
+            { id: "main_04", cue: "matrac", target: "lámpa" },
+            { id: "main_05", cue: "bőrönd", target: "szemüveg" },
+            { id: "main_06", cue: "fenyő", target: "tigris" },
+            { id: "main_07", cue: "mókus", target: "tükör" },
+            { id: "main_08", cue: "körte", target: "csengő" },
+            { id: "main_09", cue: "hegy", target: "deszka" },
+            { id: "main_10", cue: "tűz", target: "hold" },
+            { id: "main_11", cue: "tányér", target: "kulcs" },
+            { id: "main_12", cue: "acél", target: "doboz" },
+            { id: "main_13", cue: "hajó", target: "függöny" },
+            { id: "main_14", cue: "gyertya", target: "méh" },
+            { id: "main_15", cue: "villa", target: "patak" },
+            { id: "main_16", cue: "sátor", target: "zene" },
+            { id: "main_17", cue: "tulipán", target: "táska" },
+            { id: "main_18", cue: "hegedű", target: "borotva" },
+            { id: "main_19", cue: "kefe", target: "béka" },
+            { id: "main_20", cue: "kert", target: "krémleves" },
+            { id: "main_21", cue: "turbina", target: "üveg" },
+            { id: "main_22", cue: "csésze", target: "kavics" },
+            { id: "main_23", cue: "szék", target: "pillangó" },
+            { id: "main_24", cue: "térkép", target: "szalag" },
+            { id: "main_25", cue: "kalap", target: "napraforgó" },
+            { id: "main_26", cue: "pad", target: "bárány" },
+            { id: "main_27", cue: "játék", target: "szőnyeg" },
+            { id: "main_28", cue: "kosár", target: "nagyító" },
+            { id: "main_29", cue: "átlag", target: "alma" },
+            { id: "main_30", cue: "torna", target: "pince" },
+            { id: "main_31", cue: "ablak", target: "rét" },
+            { id: "main_32", cue: "óra", target: "hó" },
+            { id: "main_33", cue: "tó", target: "szekrény" },
+            { id: "main_34", cue: "búza", target: "család" },
+            { id: "main_35", cue: "seprű", target: "kút" },
+            { id: "main_36", cue: "város", target: "akadály" },
+            { id: "main_37", cue: "ecset", target: "újság" },
+            { id: "main_38", cue: "levél", target: "iskola" },
+            { id: "main_39", cue: "villám", target: "létra" },
+            { id: "main_40", cue: "szőlő", target: "csarnok" },
+            { id: "main_41", cue: "kancsó", target: "vonat" },
+            { id: "main_42", cue: "domb", target: "frizbi" },
+            { id: "main_43", cue: "tölgy", target: "könyv" },
+            { id: "main_44", cue: "párna", target: "laboratórium" },
+            { id: "main_45", cue: "fodrász", target: "homok" },
+            { id: "main_46", cue: "parancsnok", target: "torta" },
+            { id: "main_47", cue: "gomb", target: "lepény" },
+            { id: "main_48", cue: "függvény", target: "rigó" },
+            { id: "main_49", cue: "fotel", target: "szivárvány" },
+            { id: "main_50", cue: "kanál", target: "zokni" }
         ];
 
         // Rejects invalid settings instead of silently using the wrong number.
