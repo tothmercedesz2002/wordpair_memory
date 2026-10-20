@@ -32,9 +32,15 @@ https://dl.fbaipublicfiles.com/fasttext/vectors-crawl/cc.hu.300.vec.gz
 # Information
 
 Model: fastText, Hungarian Common Crawl + Wikipedia, 300 dimensions.
+
+This model can compute cosine similarity for any pair of words in its vocabulary. Cosine similarity is a measure of semantic similarity between two words, ranging from -1 (opposite meaning) to 1 (identical meaning). The model does not generate vectors for out-of-vocabulary words. This value is calculated as the cosine of the angle between the two word vectors in the 300-dimensional space.
+
 Documentation: https://fasttext.cc/docs/en/crawl-vectors.html
+
 Citation: Grave, Bojanowski, Gupta, Joulin, & Mikolov (2018).
+
 Learning Word Vectors for 157 Languages. LREC.
+
 Model license: CC BY-SA 3.0.
 
 The words here are a project-specific, non-normed candidate pool. The words were AI generated or added randomly. Familiarity/concreteness/neutrality were qualitative selection intentions, not measured or matched properties. No cosine values are invented.
@@ -125,11 +131,12 @@ validate_pool <- function(pool, excluded_words = practice_words) {    # exclude 
 }
 ```
 
-# Stream the .vec/.vec.gz file in chunks and retain only requested vectors.
+# Stream the .vec/.vec.gz file in chunks and retain only requested vectors
 
 Unlike loading the entire model, this does not require its full size in RAM. Text vectors cannot generate vectors for out-of-vocabulary words.
 
 ```{r}
+# Read the selected word vectors from the model file in chunks to avoid memory issues. The function checks for the existence of the model file, validates the chunk size, and reads the vectors for the specified words. It returns a list containing the vectors, vocabulary size, and dimensions.
 read_selected_vectors <- function(model_file, words, chunk_size = 5000L) {
   if (!file.exists(model_file)) {
     stop(
@@ -220,7 +227,6 @@ read_selected_vectors <- function(model_file, words, chunk_size = 5000L) {
 }
 ```
 
-
 # Calculating pairwise cosine similarities
 
 Here, we define a function to calculate pairwise cosine similarities for all unordered combinations of words in the pool. The function checks for valid input and computes the cosine similarity using normalized vectors.
@@ -237,6 +243,7 @@ calculate_all_pairs <- function(vectors, pool) {
     stop("Cannot compute cosine for a zero-length or invalid vector.")
   }
 
+  # Here, we compute the cosine similarity between all pairs of vectors using the tcrossprod function, which calculates the cross-product of the unit vectors. The resulting similarities are then corrected for any floating-point overshoot at -1/+1.
   unit_vectors <- sweep(vectors, 1L, norms, "/")
   similarities <- tcrossprod(unit_vectors)
   # Correct only floating-point overshoot at -1/+1.
@@ -266,6 +273,7 @@ calculate_all_pairs <- function(vectors, pool) {
 Here, we define a function to run the analysis. It reads the word vectors, calculates pairwise cosine similarities, and saves the results to an output directory. The function also ensures that the R session is using a UTF-8 locale to handle accented words correctly.
 
 ```{r}
+# Run the analysis
 run_analysis <- function(model_file, output_dir, pool = word_pool,
                          chunk_size = SETTINGS$chunk_size) {
   # Older/non-UTF-8 sessions can write literal "<U+...>" escapes into a CSV.
