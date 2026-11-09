@@ -2,7 +2,7 @@
 
 A browser-based Hungarian word-pair learning task with cued recall and confidence ratings, implemented using jsPsych.
 
-**Current task version:** `WPM_2026-10-20_v1`
+**Current task version:** `WPM_2026-11-09_v1`
 
 The task is a research prototype, not a standardized or validated memory test.
 
@@ -14,8 +14,7 @@ Participants first study two practice pairs and then complete recall and confide
 
 ### Learning phase
 
-By default, participants study **12 word pairs**, presented sequentially for **5 seconds per pair**.
-Participants are instructed to remember which second word belongs to each first word. No response is required during learning.
+Participants study **12, 15, or 18 word pairs**, depending on the randomly assigned pilot version. Pairs are presented sequentially for **5 seconds per pair**. Participants are instructed to remember which second word belongs to each first word. No response is required during learning.
 
 ### Recall and confidence
 
@@ -31,7 +30,7 @@ No correct-answer feedback is provided during the recall test.
 
 ### Scoring
 
-Typed responses are compared with the target word after Unicode normalization, removal of surrounding whitespace, and conversion to lowercase. Accents remain meaningful, and spelling mistakes are notautomatically corrected.
+Typed responses are compared with the target word after Unicode normalization, removal of surrounding whitespace, and conversion to lowercase. Accents remain meaningful, and spelling mistakes are not automatically corrected.
 An “I don't remember” response is recorded as unsuccessful recall.
 
 ## Word-pair materials and provenance
@@ -105,13 +104,13 @@ OpenAI. (n.d.). *Codex* [AI assistant].
 The candidate words were not quantitatively matched or independently rated for word frequency, length, familiarity, emotional valence or arousal, concreteness, or recall difficulty.
 Cosine similarity is a model-dependent measure of vector alignment. It is not a direct measure of human association strength or memory performance. Restricting values to a range does not make the selected pairs equally difficult or constitute formal matching on other lexical properties.
 Because the procedure uses all 100 candidate words, it does not remove less suitable words from that list. The final pairs still require content review and empirical pilot testing.
-Randomly sampling 12 pairs for each participant also does not guarantee equal difficulty across participant-specific lists. Item-level performance and the task's measurement properties require evaluation.
+Randomly sampling a subset of pairs does not guarantee equal difficulty across participant-specific lists, even within the same length condition. Item-level performance and the task's measurement properties require evaluation.
 
 ## Participant-level sampling and settings
 
-The fixed pool contains **50 word pairs**. At the beginning of each task run, the program randomly selects **12 pairs without replacement**.
+At the beginning of each run, the task randomly assigns one of three pilot lengths: **12, 15, or 18 main-task pairs**. Each length has an equal probability of being selected. The task then samples the assigned number of pairs without replacement from the same **50-pair pool**.
 
-Learning order and recall order are randomized separately, but both phases use the **same selected pairs**. Words are not swapped between pairs, and cue–target direction remains fixed.
+Learning and recall use the **same selected pairs** in separately randomized orders. Pairings and cue–target directions remain fixed. The two practice pairs are separate and are not included in the assigned pair count.
 
 The R seed used to construct the pool does **not** fix participant-level sampling or presentation order in jsPsych.
 
@@ -119,10 +118,10 @@ The task parameters can be changed in the `SETTINGS` object in `index.html`:
 
 | Setting | Description | Default |
 | --- | --- | --- |
-| `mainPairCount` | Number of main-task pairs selected from the pool | `12` |
+| `mainPairCounts` | Possible numbers of main-task pairs | `[12, 15, 18]` |
 | `pairDisplayMs` | Learning presentation duration per pair, in milliseconds | `5000` |
 
-`mainPairCount` must be an integer between `1` and `50` for the current pool. The two practice pairs are separate and are not included in this count.
+Each configured pair count must be an integer between 1 and the number of available pairs.
 
 ## Files
 
@@ -142,4 +141,4 @@ A desktop or laptop computer with a physical keyboard is required.
 In the GitHub Pages demo, results are downloaded locally as a CSV file at the end of the task. The demo does not upload the collected response data to a research server. 
 When the task is run through JATOS, results are submitted to the configured JATOS server instead. If saving fails, the interface offers a retry and a backup CSV download.
 
-The exported data include the experiment version, selected-pair count, pool size, presentation duration, pair IDs, cues, targets, recall responses, correctness, and confidence ratings.
+The CSV records the assigned pilot version in `wpm_length_condition` (`WPM_12`, `WPM_15`, or `WPM_18`) and the corresponding numeric pair count in `main_pair_count`. The export also includes the experiment version, pool size, presentation duration, pair IDs, cues, targets, recall responses, correctness, and confidence ratings.
