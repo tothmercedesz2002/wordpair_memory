@@ -130,7 +130,7 @@
 
         // INITIALIZATION
 
-        const EXPERIMENT_VERSION = "WPM_2026-11-03_v1";
+        const EXPERIMENT_VERSION = "WPM_2026-11-09_v1";
         const IS_JATOS = window.location.pathname.includes("/publix/");
 
         let participantId = "";
@@ -147,7 +147,7 @@
         // SETTINGS AND MATERIALS
 
         const SETTINGS = {
-            mainPairCount: 15,
+            mainPairCounts: [12, 15, 18],
             pairDisplayMs: 5000
         };
 
@@ -213,22 +213,27 @@
             { id: "main_50", cue: "kanál", target: "zokni" }
         ];
 
-        // Rejects invalid settings instead of silently using the wrong number.
+        // Draw one task length for the entire run.
+        const [mainPairCount] = jsPsych.randomization.sampleWithoutReplacement(
+            SETTINGS.mainPairCounts,
+            1
+        );
+
+        // Rejects an invalid count instead of silently using the wrong number.
         if (
-            !Number.isInteger(SETTINGS.mainPairCount) ||
-            SETTINGS.mainPairCount < 1 ||
-            SETTINGS.mainPairCount > mainPairPool.length
+            !Number.isInteger(mainPairCount) ||
+            mainPairCount < 1 ||
+            mainPairCount > mainPairPool.length
         ) {
             throw new Error(
                 `A mainPairCount értéke 1 és ${mainPairPool.length} közötti egész szám legyen.`
             );
         }
 
-        // Selects the participant's pairs once, without replacement.
-        // Both learning and recall use this same selection.
+        // Both learning and recall use the same randomly selected pairs.
         const mainPairs = jsPsych.randomization.sampleWithoutReplacement(
             mainPairPool,
-            SETTINGS.mainPairCount
+            mainPairCount
         );
 
         // HELPERS
@@ -294,6 +299,7 @@
                 .filterColumns([
                     "participant_id",
                     "experiment_version",
+                    "wpm_length_condition",
                     "main_pair_count",
                     "pair_pool_size",
                     "pair_display_ms",
@@ -782,6 +788,7 @@
             jsPsych.data.addProperties({
                 participant_id: participantId,
                 experiment_version: EXPERIMENT_VERSION,
+                wpm_length_condition: `WPM_${mainPairs.length}`,
                 main_pair_count: mainPairs.length,
                 pair_pool_size: mainPairPool.length,
                 pair_display_ms: SETTINGS.pairDisplayMs,
